@@ -2909,3 +2909,19 @@ body.acb-no-motion *::after {
 }
 
 .run-var__name { font-weight: 700; }
+
+/* --- Stepper (block-by-block debugger) --- */
+.debug-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px 0;
+    flex-shrink: 0;
+}
+.debug-bar .coach-chip { font-size: 12px; }
+
+.acb-block-error > .blocklyPath {
+    stroke: #d64545;
+    stroke-width: 3.4px;
+    filter: drop-shadow(0 0 8px rgba(214, 69, 69, 0.8));
+}

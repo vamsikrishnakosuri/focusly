@@ -173,6 +173,8 @@ function initWorkspace() {
     if (typeof setupJuice === 'function') setupJuice(workspace);
     if (typeof setupSensory === 'function') setupSensory();
     setupWorkspaceSearch(workspace);
+    if (typeof setupStepper === 'function') setupStepper(workspace);
+    if (typeof setupWalkthrough === 'function') setupWalkthrough(workspace);
     // Blox's 3D self appears from the start (a beat after load, so it
     // never competes with startup), not just on the first question.
     setTimeout(() => { if (typeof ensureBloxSpinner === 'function') ensureBloxSpinner(); }, 1200);

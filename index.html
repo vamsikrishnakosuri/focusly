@@ -32,6 +32,8 @@
     <script src="./js/main.js"></script>
     <script src="./js/juice.js"></script>
     <script src="./js/sensory.js"></script>
+    <script src="./js/stepper.js"></script>
+    <script src="./js/walkthrough.js"></script>
 </head>
 <body onload="initWorkspace()">
   <div id="root">
@@ -299,6 +301,17 @@
                     </select>
                 </div>
                 <div id="outputTabPanel" class="io-panel" role="tabpanel" aria-labelledby="outputTabButton">
+                    <div class="debug-bar">
+                        <button id="debugStart" class="coach-chip" type="button"
+                                title="Run one block at a time and watch each one glow">
+                            &#128034; Step through
+                        </button>
+                        <span id="debugCtrls" hidden>
+                            <button id="debugStep" class="coach-chip" type="button">&#9654; Step</button>
+                            <button id="debugAuto" class="coach-chip" type="button">&#9193; Auto</button>
+                            <button id="debugStop" class="coach-chip" type="button">&#9209; Stop</button>
+                        </span>
+                    </div>
                     <div id="runVars" class="run-vars" hidden
                          aria-label="Variable values after the run"></div>
                     <div id="outputPanel" class="output-content" data-output="line" aria-describedby="blockReader" aria-label="Output panel">
@@ -343,6 +356,10 @@
                     <button id="coachPatternsButton" class="coach-chip" type="button"
                             title="Insert a ready-made pattern of blocks to build on">
                         &#128218; Patterns
+                    </button>
+                    <button id="coachWalkButton" class="coach-chip" type="button"
+                            title="Blox explains your blocks one at a time, top to bottom">
+                        &#129517; Walk me through it
                     </button>
                     <button id="coachExplainButton" class="coach-chip" type="button">
                         What does this block do?
