@@ -2568,3 +2568,211 @@ select, option, select:focus, option:hover, button {
     height: 30px;
     display: block;
 }
+
+/* ================================================================== */
+/* Juice & Journey: map, badges, dailies, timer arc                    */
+/* ================================================================== */
+
+.quest-bar__map {
+    position: relative;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+}
+
+.map-dot {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f59e2d;
+}
+
+.chip__arc {
+    flex-shrink: 0;
+}
+
+.chip__arc-bg {
+    fill: none;
+    stroke: rgba(23, 113, 90, 0.25);
+    stroke-width: 2.6;
+}
+
+.chip__arc-fg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.9s linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chip__arc-fg { transition: none; }
+}
+
+/* The map overlay */
+.quest-map {
+    position: fixed;
+    inset: 0;
+    z-index: 14000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(43, 43, 38, 0.35);
+}
+
+.quest-map[hidden] { display: none; }
+
+.quest-map__card {
+    width: min(680px, calc(100vw - 40px));
+    max-height: calc(100vh - 60px);
+    display: flex;
+    flex-direction: column;
+    background: var(--acb-card-bg);
+    border: 1px solid var(--acb-card-border);
+    border-radius: var(--acb-radius);
+    box-shadow: var(--acb-shadow);
+    overflow: hidden;
+}
+
+.quest-map__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--acb-card-border);
+}
+
+.quest-map__header h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.quest-map__body {
+    padding: 14px 18px 18px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.map-stats {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.map-island h3 {
+    margin: 0 0 8px;
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.map-island__nodes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.map-node {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border: 1px solid var(--acb-card-border);
+    border-radius: 10px;
+    background: var(--acb-card-bg);
+    font-family: var(--acb-font);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--acb-ink);
+    cursor: pointer;
+    text-align: left;
+}
+
+.map-node:hover { background: #f6f4ee; }
+
+.map-node__mark {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #eee9dd;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.map-node.is-done .map-node__mark {
+    background: var(--acb-green);
+    color: #fff;
+}
+
+.map-node.is-active { border-color: var(--acb-green); }
+
+.map-node.is-suggested {
+    border-color: #7fc4a5;
+    box-shadow: 0 0 0 3px rgba(23, 138, 94, 0.15);
+}
+
+.map-node__xp {
+    margin-left: auto;
+    color: var(--acb-ink-soft);
+    font-size: 0.8rem;
+}
+
+.map-dailies {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.map-daily {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.map-daily.is-done {
+    color: var(--acb-ink-soft);
+    text-decoration: line-through;
+    text-decoration-color: var(--acb-green);
+    text-decoration-thickness: 2px;
+}
+
+.map-badges {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 8px;
+}
+
+.map-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 6px;
+    border: 1px solid var(--acb-card-border);
+    border-radius: 10px;
+    opacity: 0.45;
+}
+
+.map-badge.is-earned {
+    opacity: 1;
+    background: var(--acb-mint);
+    border-color: #d3e9dc;
+}
+
+.map-badge__emoji { font-size: 1.4rem; }
+
+.map-badge__name {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-align: center;
+}

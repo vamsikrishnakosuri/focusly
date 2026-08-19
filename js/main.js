@@ -170,6 +170,7 @@ function initWorkspace() {
     setupAiCoach();
     setupCoachChat();
     setupCodeBridge(workspace);
+    if (typeof setupJuice === 'function') setupJuice(workspace);
     // Blox's 3D self appears from the start (a beat after load, so it
     // never competes with startup), not just on the first question.
     setTimeout(() => { if (typeof ensureBloxSpinner === 'function') ensureBloxSpinner(); }, 1200);
@@ -391,6 +392,7 @@ function setupCodeBridge(workspace) {
         if (typeof Blockly.svgResize === 'function') Blockly.svgResize(workspace);
         generateCode();
         setEditing(false);
+        document.dispatchEvent(new CustomEvent('acb-bridge-used'));
         showXpToast('⇄ Your code became blocks');
         coachSay('Text and blocks are the same program in two outfits. ' +
             'Change either one whenever you like.');
@@ -693,6 +695,23 @@ function setupBreakTimerChip() {
         chip.classList.toggle('is-off', state === 'off');
         chip.classList.toggle('is-break', state === 'break');
         if (switchEl) switchEl.setAttribute('aria-checked', String(state !== 'off'));
+        // The little analog disk: how much of the current phase remains.
+        const arc = document.getElementById('timerArcFg');
+        if (arc) {
+            const CIRC = 2 * Math.PI * 5.5;
+            let fraction = 1;
+            if (state === 'working' || state === 'nudging' || paused) {
+                const d = timer.getDurations();
+                fraction = Math.max(0, Math.min(1,
+                    timer.remainingMs() / (d.workMinutes * 60000)));
+            } else if (state === 'break') {
+                const d = timer.getDurations();
+                fraction = Math.max(0, Math.min(1,
+                    timer.remainingMs() / (d.breakMinutes * 60000)));
+            }
+            arc.style.strokeDasharray = String(CIRC);
+            arc.style.strokeDashoffset = String(CIRC * (1 - fraction));
+        }
         if (state === 'off') {
             label.textContent = 'Timer';
             chip.setAttribute('aria-label', 'Timer off. Click for details.');
@@ -864,29 +883,7 @@ function setupRewards() {
         catch (e) { /* fine */ }
     };
 
-    // Streak: consecutive days with a visit.
-    const today = new Date();
-    const dayString = today.getFullYear() + '-' +
-        String(today.getMonth() + 1).padStart(2, '0') + '-' +
-        String(today.getDate()).padStart(2, '0');
-    const yesterday = new Date(today.getTime() - 86400000);
-    const yesterdayString = yesterday.getFullYear() + '-' +
-        String(yesterday.getMonth() + 1).padStart(2, '0') + '-' +
-        String(yesterday.getDate()).padStart(2, '0');
-
-    const streak = read('acb.streak.v1', {last: null, count: 0});
-    if (streak.last !== dayString) {
-        streak.count = (streak.last === yesterdayString) ? streak.count + 1 : 1;
-        streak.last = dayString;
-        write('acb.streak.v1', streak);
-    }
-    if (streakLabel) {
-        streakLabel.textContent = streak.count === 1 ? '1 day' : `${streak.count} days`;
-    }
-    streakChip.hidden = false;
-    streakChip.title = 'Days in a row you have coded';
-
-    // XP: +25 per run.
+    // Streaks live in juice.js (v2, with freezes). XP: +25 per run.
     let xp = Number(read('acb.xp.v1', 0)) || 0;
     const paintXp = () => { if (xpLabel) xpLabel.textContent = `${xp} XP`; };
     paintXp();
@@ -1427,6 +1424,7 @@ function setupQuests(workspace) {
             ACB_TASKS.push(task);
             addCustomOption(task);
             closeChallengeModal();
+            document.dispatchEvent(new CustomEvent('acb-challenge-created'));
             select.value = task.id;
             select.dispatchEvent(new Event('change'));
         } catch (e) {
