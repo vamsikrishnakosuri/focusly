@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 108 104" width="500" height="500">
+  <path stroke="#16151A" stroke-width="3" fill="#4F7DFF" d="M14 0 H100 A4 4 0 0 1 104 4 V24 A4 4 0 0 1 100 28 H26 A9 9 0 0 1 8 28 H4 A4 4 0 0 1 0 24 V14 A14 14 0 0 1 14 0 Z"></path>
+  <path stroke="#16151A" stroke-width="3" fill="#9DC1FF" d="M4 36 H68 A4 4 0 0 1 72 40 V60 A4 4 0 0 1 68 64 H26 A9 9 0 0 1 8 64 H4 A4 4 0 0 1 0 60 V40 A4 4 0 0 1 4 36 Z"></path>
+  <path stroke="#16151A" stroke-width="3" fill="#FFFFFF" d="M4 72 H24 A4 4 0 0 1 28 76 V86 A14 14 0 0 1 14 100 H4 A4 4 0 0 1 0 96 V76 A4 4 0 0 1 4 72 Z"></path>
+</svg>

@@ -1,0 +1,17 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Blox: eight small blocks orbiting one calm centre - many tiny steps
+       around a single point of focus. One block runs warm: the step you
+       are on right now. -->
+  <g>
+    <g transform="rotate(0 32 32)"><rect x="27" y="8.5" width="10" height="10" rx="3.2" fill="#178a5e"/></g>
+    <g transform="rotate(45 32 32)"><rect x="27" y="8.5" width="10" height="10" rx="3.2" fill="#f59e2d"/></g>
+    <g transform="rotate(90 32 32)"><rect x="27" y="8.5" width="10" height="10" rx="3.2" fill="#178a5e"/></g>
+    <g transform="rotate(135 32 32)"><rect x="27" y="8.5" width="10" height="10" rx="3.2" fill="#25a077"/></g>
+    <g transform="rotate(180 32 32)"><rect x="27" y="8.5" width="10" height="10" rx="3.2" fill="#178a5e"/></g>
+    <g transform="rotate(225 32 32)"><rect x="27" y="8.5" width="10" height="10" rx="3.2" fill="#25a077"/></g>
+    <g transform="rotate(270 32 32)"><rect x="27" y="8.5" width="10" height="10" rx="3.2" fill="#178a5e"/></g>
+    <g transform="rotate(315 32 32)"><rect x="27" y="8.5" width="10" height="10" rx="3.2" fill="#25a077"/></g>
+  </g>
+  <circle cx="32" cy="32" r="7.2" fill="#ffffff"/>
+  <circle cx="32" cy="32" r="2.6" fill="#23404e"/>
+</svg>

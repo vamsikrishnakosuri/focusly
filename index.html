@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focusly</title>
+    <link rel="icon" type="image/svg+xml" href="img/focusly-logo.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap">
+    <link rel="stylesheet" href="main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script type="importmap">
+    {"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+                 "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/"}}
+    </script>
+    <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
+    <script src="./lib/blockly_compressed.js"></script>
+    <script src="./lib/blocks_compressed.js"></script>
+    <script src="./lib/javascript_compressed.js"></script>
+    <script src="./lib/python_compressed.js"></script>
+    <script src="./lib/php_compressed.js"></script>
+    <script src="./lib/lua_compressed.js"></script>
+    <script src="./lib/dart_compressed.js"></script>
+    <script src="./lib/msg/en.js"></script>
+    <script src="./keyboard-navigation/index.js"></script>
+    <script src="./js/Toolbox.js"></script>
+    <script src="./js/tasks_catalog.js"></script>
+    <script src="./js/key_overlay.js"></script>
+    <script type="module" src="./js/instructions_overlay.js"></script>
+    <script src="./js/main.js"></script>
+</head>
+<body onload="initWorkspace()">
+  <div id="root">
+    <header class="app-bar">
+        <div class="app-bar__brand">
+            <span class="app-logo app-logo--mark" aria-hidden="true"><img src="img/focusly-logo.svg" alt=""></span>
+            <h1>Focusly</h1>
+        </div>
+        <div class="quest-bar" role="group" aria-label="Current quest">
+            <span class="quest-bar__label" aria-hidden="true">Quest</span>
+            <label class="sr-only" for="taskSelect">Choose a quest</label>
+            <select id="taskSelect" class="quest-bar__select">
+                <option value="">Pick a quest…</option>
+                <!-- optgroups filled from the task catalog -->
+            </select>
+            <span id="questPips" class="quest-bar__pips" aria-hidden="true" hidden></span>
+            <span id="questSteps" class="quest-bar__steps" hidden></span>
+        </div>
+        <div class="app-bar__status" role="group" aria-label="Focus tools and settings">
+            <span id="xpChip" class="chip chip--xp" hidden>
+                <i class="fas fa-star" aria-hidden="true"></i>
+                <span id="xpChipLabel">0 XP</span>
+            </span>
+            <span id="streakChip" class="chip chip--streak" hidden>
+                <i class="fas fa-fire" aria-hidden="true"></i>
+                <span id="streakChipLabel">1 day</span>
+            </span>
+            <button id="focusModeToggle" class="chip chip--switch" type="button"
+                    aria-pressed="false"
+                    title="Focus mode (Ctrl+Shift+F)"
+                    aria-label="Turn focus mode on">
+                <span class="mini-switch" aria-hidden="true"></span>
+                <span class="chip__label">Focus</span>
+            </button>
+            <div class="timer-menu">
+                <button id="breakTimerChip" class="chip chip--timer" type="button"
+                        aria-haspopup="true" aria-expanded="false"
+                        aria-controls="timerDropdown"
+                        title="Break reminder - click for details"
+                        aria-label="Break reminder">
+                    <span id="breakTimerSwitch" class="mini-switch" role="switch"
+                          aria-checked="true" tabindex="0"
+                          aria-label="Break reminder on or off"></span>
+                    <span class="chip__label" id="breakTimerChipLabel">Timer</span>
+                </button>
+                <div id="timerDropdown" class="settings-dropdown timer-dropdown"
+                     role="group" aria-label="Focus timer settings" hidden>
+                    <p class="timer-dropdown__title">Focus timer</p>
+                    <label class="timer-dropdown__row">
+                        <span>Work</span>
+                        <input id="timerWorkInput" class="timer-input" type="text"
+                               inputmode="numeric" placeholder="25:00" maxlength="6"
+                               aria-label="Work length, minutes and seconds, like 25:00">
+                    </label>
+                    <label class="timer-dropdown__row">
+                        <span>Break</span>
+                        <input id="timerBreakInput" class="timer-input" type="text"
+                               inputmode="numeric" placeholder="05:00" maxlength="6"
+                               aria-label="Break length, minutes and seconds, like 05:00">
+                    </label>
+                    <p class="timer-dropdown__note">Type times as minutes:seconds, like 25:00.</p>
+                    <button id="timerPauseButton" class="settings-item" type="button">
+                        <i class="fas fa-pause" aria-hidden="true"></i>
+                        <span id="timerPauseButtonLabel">Pause timer</span>
+                    </button>
+                    <button id="timerToggleButton" class="settings-item" type="button">
+                        <i class="fas fa-power-off" aria-hidden="true"></i>
+                        <span id="timerToggleButtonLabel">Turn timer off</span>
+                    </button>
+                </div>
+            </div>
+            <div class="settings-menu">
+                <button id="settingsButton" class="chip chip--icon" type="button"
+                        aria-haspopup="true" aria-expanded="false"
+                        aria-controls="settingsDropdown"
+                        title="Settings"
+                        aria-label="Settings menu">
+                    <i class="fas fa-gear" aria-hidden="true"></i>
+                </button>
+                <div id="settingsDropdown" class="settings-dropdown" role="menu"
+                     aria-label="Settings" hidden>
+                    <button id="themeToggle" class="settings-item" type="button" role="menuitem"
+                            title="Switch theme (Bright, Calm, Dark)"
+                            aria-label="Switch theme, current theme Bright">
+                        <i class="fas fa-palette" aria-hidden="true"></i>
+                        <span>Theme: <span id="themeToggleLabel">Bright</span></span>
+                    </button>
+                    <button id="showKeysToggle" class="settings-item" type="button"
+                            role="menuitemcheckbox" aria-checked="false"
+                            title="Show pressed keys on screen (for screen-reader demos)">
+                        <i class="fas fa-keyboard" aria-hidden="true"></i>
+                        <span>Show pressed keys</span>
+                    </button>
+                    <button id="showShortcuts" class="settings-item" type="button" role="menuitem"
+                            title="Show keyboard shortcuts" aria-label="Show keyboard shortcuts">
+                        <i class="fas fa-keyboard" aria-hidden="true"></i>
+                        <span>Keyboard shortcuts</span>
+                    </button>
+                    <button id="showInstructions" class="settings-item" type="button" role="menuitem"
+                            title="Show task instructions" aria-label="Show task instructions">
+                        <i class="fas fa-circle-info" aria-hidden="true"></i>
+                        <span>Task instructions</span>
+                    </button>
+                    <button id="openAppWindow" class="settings-item" type="button" role="menuitem"
+                            title="Open in a clean window with no tabs or other pages"
+                            aria-label="Open in app window">
+                        <i class="fas fa-window-restore" aria-hidden="true"></i>
+                        <span>Open in app window</span>
+                    </button>
+                    <button id="coachInFocusToggle" class="settings-item" type="button"
+                            role="menuitemcheckbox" aria-checked="false"
+                            title="Keep the coach panel visible while Focus Mode is on">
+                        <i class="fas fa-feather" aria-hidden="true"></i>
+                        <span>Coach in Focus Mode</span>
+                    </button>
+                    <button id="aiCoachToggle" class="settings-item" type="button"
+                            role="menuitemcheckbox" aria-checked="true"
+                            title="Smarter, personalised coaching through the local coach server">
+                        <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>
+                        <span>AI Coach <span id="aiCoachStatus" class="now-card__kicker-soft"></span></span>
+                    </button>
+                    <button id="coachChatToggle" class="settings-item" type="button"
+                            role="menuitemcheckbox" aria-checked="false"
+                            title="A small ask-the-coach box in the coach panel. Stays on your quest.">
+                        <i class="fas fa-comment-dots" aria-hidden="true"></i>
+                        <span>Coach chat</span>
+                    </button>
+                    <div class="settings-divider" role="separator"></div>
+                    <p class="settings-heading">Sample programs</p>
+                    <label class="timer-dropdown__row">
+                        <span class="sr-only">Load a sample program</span>
+                        <select id="programSelect" class="program-dropdown program-dropdown--sm" style="width: 100%;">
+                            <option value="">None: select a program…</option>
+                            <!-- options filled on events -->
+                        </select>
+                    </label>
+                    <div class="settings-divider" role="separator"></div>
+                    <p class="settings-heading" id="layoutHeading">Panel layout</p>
+                    <button id="layoutSide" class="settings-item" type="button"
+                            role="menuitemradio" aria-checked="true">
+                        <i class="fas fa-table-columns" aria-hidden="true"></i>
+                        <span>Panels on the right</span>
+                    </button>
+                    <button id="layoutBelow" class="settings-item" type="button"
+                            role="menuitemradio" aria-checked="false">
+                        <i class="fas fa-table-list" aria-hidden="true"></i>
+                        <span>Panels below</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+    <div id="mainArea" class="main-area layout-side">
+        <div id="blocklyApp"
+             role="application"
+             tabindex="0"
+             aria-label="Blockly workspace">
+            <div id="blocklyDiv" class="editor-panel"></div>
+            <!-- The one small step the learner is on right now -->
+            <div id="nowCard" class="now-card" role="region" aria-label="Current step" hidden>
+                <p class="now-card__kicker" style="display: flex; align-items: center; gap: 6px;">
+                    <span>NOW · STEP <span id="nowCardStepNum">1</span>
+                    <span class="now-card__kicker-soft">· one small thing</span>
+                    <span id="nowCardXp" class="now-card__kicker-soft"></span></span>
+                    <button id="nowCardRestart" class="now-card__restart" type="button"
+                            title="Start this quest over from step 1">↺ Start over</button>
+                </p>
+                <p id="nowCardText" class="now-card__text"></p>
+                <div class="now-card__blocks-row">
+                    <div id="nowCardBlocks" class="now-card__blocks"
+                         role="group" aria-label="Blocks this step needs"></div>
+                    <button id="nowCardAllBlocks" class="now-card__restart"
+                            type="button" aria-pressed="false"
+                            title="Show every block category, not just this step's">
+                        All blocks ▸
+                    </button>
+                </div>
+                <div class="now-card__actions">
+                    <button id="nowCardDone" class="now-card__button now-card__button--primary" type="button">
+                        Done, next step
+                    </button>
+                    <button id="nowCardStuck" class="now-card__button now-card__button--secondary" type="button">
+                        I'm stuck 🐌
+                    </button>
+                </div>
+            </div>
+            <!-- Quest complete: the moment belongs to the learner - blocks
+                 and output stay on screen, moving on is their choice. -->
+            <div id="questDoneCard" class="now-card" role="region"
+                 aria-label="Quest complete" hidden>
+                <p class="now-card__kicker">QUEST COMPLETE 🏁</p>
+                <p id="questDoneText" class="now-card__text"></p>
+                <div class="now-card__actions">
+                    <button id="questDoneNext" class="now-card__button now-card__button--primary" type="button"></button>
+                    <button id="questDoneStay" class="now-card__button now-card__button--secondary" type="button">
+                        Stay here a while
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="mainSplitter" class="main-splitter" role="separator"
+             aria-orientation="vertical" tabindex="0"
+             aria-label="Resize panels. Use arrow keys."></div>
+        <div id="blockReader"
+             class="visually-hidden"
+             aria-live="assertive"
+             aria-atomic="true"
+             role="status"></div>
+        <div class="execution-panel">
+            <!-- The one primary action, big and unmissable -->
+            <button id="runButton" class="run-button run-button--big" data-run>
+                <i class="fas fa-play" aria-hidden="true"></i> Run my code
+            </button>
+
+            <!-- Output / Code, one card, two tabs -->
+            <section class="io-card" aria-label="Program results">
+                <div class="io-tabs" role="tablist" aria-label="Result view">
+                    <button id="outputTabButton" class="io-tab" type="button"
+                            role="tab" aria-selected="true" aria-controls="outputTabPanel">
+                        Output
+                    </button>
+                    <button id="codeTabButton" class="io-tab" type="button"
+                            role="tab" aria-selected="false" aria-controls="codeTabPanel">
+                        Code
+                    </button>
+                    <label class="sr-only" for="languageSelect">Language</label>
+                    <select id="languageSelect" class="program-dropdown program-dropdown--sm io-tabs__lang" hidden>
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="php">PHP</option>
+                        <option value="lua">Lua</option>
+                        <option value="dart">Dart</option>
+                        <option value="xml">XML</option>
+                    </select>
+                </div>
+                <div id="outputTabPanel" class="io-panel" role="tabpanel" aria-labelledby="outputTabButton">
+                    <div id="outputPanel" class="output-content" data-output="line" aria-describedby="blockReader" aria-label="Output panel">
+                        <!-- Output lines will be appended here dynamically -->
+                    </div>
+                </div>
+                <div id="codeTabPanel" class="io-panel io-panel--code" role="tabpanel" aria-labelledby="codeTabButton" hidden>
+                    <div class="code-toolbar">
+                        <button id="codeEditButton" class="coach-chip" type="button"
+                                title="Edit this program as JavaScript text">
+                            ✏️ Edit as text
+                        </button>
+                        <button id="codeApplyButton" class="coach-chip" type="button" hidden
+                                title="Convert your text code back into blocks">
+                            ⇄ Turn into blocks
+                        </button>
+                        <button id="codeCancelButton" class="coach-chip" type="button" hidden>
+                            Cancel
+                        </button>
+                    </div>
+                    <pre id="codeOutput" class="prettyprint" style="border: none"><code class="language-javascript"></code></pre>
+                    <div id="monacoHost" class="monaco-host" hidden></div>
+                    <ul id="codeBridgeErrors" class="code-errors" hidden></ul>
+                </div>
+            </section>
+
+            <!-- The Coach: welcome-back recap now; AI tutor, hints and the
+                 friendly debugger plug in here next. Hidden in Focus Mode. -->
+            <section id="coachCard" class="coach-card" aria-label="Coach">
+                <div class="coach-card__bubble">
+                    <span class="coach-card__avatar" aria-hidden="true"><img src="img/blox-mark.svg" alt="" class="coach-card__avatar-img"></span>
+                    <p id="coachMessage" class="coach-card__message">
+                        Hi, I’m Blox! Pick a quest up top and I will walk you
+                        through it, one small step at a time.
+                    </p>
+                </div>
+                <div id="coachChecklist" class="coach-checklist" hidden>
+                    <p class="coach-card__hints-title">Quest steps</p>
+                    <ol id="coachChecklistItems" class="coach-checklist__items"></ol>
+                </div>
+                <div class="coach-card__buttons" role="group" aria-label="Ask Blox">
+                    <button id="coachExplainButton" class="coach-chip" type="button">
+                        What does this block do?
+                    </button>
+                    <button id="coachDebugButton" class="coach-chip" type="button">
+                        Why didn't it work?
+                    </button>
+                    <button id="coachAgainButton" class="coach-chip" type="button" hidden
+                            title="Did that not land? Blox explains it a different way each time.">
+                        Explain another way
+                    </button>
+                </div>
+                <div id="coachHints" class="coach-card__hints" hidden>
+                    <p class="coach-card__hints-title">
+                        Hints: one at a time, never the answer
+                    </p>
+                    <p id="coachHintText" class="coach-card__hint-line"></p>
+                    <div class="hint-nav">
+                        <button id="coachHintPrev" class="coach-chip" type="button" hidden
+                                aria-label="Show previous hint">◀</button>
+                        <button id="coachHintMore" class="coach-chip coach-chip--wide" type="button" hidden>
+                            Show hint 2 of 3
+                        </button>
+                    </div>
+                </div>
+                <form id="coachChatForm" class="coach-chat" hidden>
+                    <label class="sr-only" for="coachChatInput">Ask the coach</label>
+                    <input id="coachChatInput" class="coach-chat__input" type="text"
+                           maxlength="300" placeholder="Ask Blox about your quest…"
+                           autocomplete="off">
+                    <button class="coach-chip" type="submit" aria-label="Send">➤</button>
+                </form>
+                <div id="coachDebugger" class="coach-card__debugger" hidden>
+                    <p id="coachDebuggerText"></p>
+                </div>
+            </section>
+        </div>
+    </div>
+    <div id="challengeModal" class="challenge-modal" role="dialog"
+         aria-label="Create your own challenge" hidden>
+        <div class="challenge-modal__card">
+            <p class="challenge-modal__title">✨ My own challenge</p>
+            <p class="challenge-modal__line">
+                Describe what you want to build (or paste your teacher's
+                problem). Blox will break it into small steps.
+            </p>
+            <label class="sr-only" for="challengeText">Describe your problem</label>
+            <textarea id="challengeText" class="challenge-modal__text" rows="3"
+                      placeholder="Example: print the factorial of 6"></textarea>
+            <label class="timer-dropdown__row">
+                <span>Level
+                    <button id="challengeLevelHelp" class="help-dot" type="button"
+                            aria-label="What do the levels mean?"
+                            title="What do the levels mean?">?</button>
+                </span>
+                <select id="challengeLevel" class="program-dropdown program-dropdown--sm">
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate" selected>Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                </select>
+            </label>
+            <p id="challengeLevelHint" class="challenge-modal__line" hidden></p>
+            <p id="challengeStatus" class="challenge-modal__status" role="status"></p>
+            <div class="now-card__actions">
+                <button id="challengeCreate" class="now-card__button now-card__button--primary" type="button">
+                    Create my quest
+                </button>
+                <button id="challengeSurprise" class="now-card__button now-card__button--secondary" type="button"
+                        title="No idea in mind? Blox invents a quest for this level.">
+                    🎲 Surprise me
+                </button>
+                <button id="challengeCancel" class="now-card__button now-card__button--secondary" type="button">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="xpToast" class="xp-toast" role="status" aria-live="polite" hidden>
+        <span class="xp-toast__emoji" aria-hidden="true">🎉</span>
+        <span id="xpToastText"></span>
+    </div>
+  </div>
+</body>
+</html>
