@@ -5,4 +5,4 @@
  * deployed coach server, e.g. 'https://focusly-coach.onrender.com'.
  * A learner's own localStorage 'acb.coachServer' still overrides both.
  */
-window.FOCUSLY_COACH_URL = '';
+window.FOCUSLY_COACH_URL = 'https://blockly-flow.onrender.com';
