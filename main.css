@@ -2776,3 +2776,36 @@ select, option, select:focus, option:hover, button {
     font-weight: 800;
     text-align: center;
 }
+
+/* Sensory profile */
+:root {
+    --acb-letter-spacing: normal;
+    --acb-text-scale: 1;
+}
+
+body {
+    letter-spacing: var(--acb-letter-spacing);
+    font-size: calc(1rem * var(--acb-text-scale));
+}
+
+.pref-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.coach-chip.is-picked {
+    background: var(--acb-mint);
+    border-color: var(--acb-green);
+    color: var(--acb-mint-ink);
+}
+
+/* Minimal-motion kills every decorative animation in one rule. */
+body.acb-no-motion *,
+body.acb-no-motion *::before,
+body.acb-no-motion *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+}

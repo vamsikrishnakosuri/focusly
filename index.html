@@ -31,6 +31,7 @@
     <script type="module" src="./js/instructions_overlay.js"></script>
     <script src="./js/main.js"></script>
     <script src="./js/juice.js"></script>
+    <script src="./js/sensory.js"></script>
 </head>
 <body onload="initWorkspace()">
   <div id="root">
@@ -128,6 +129,11 @@
                             aria-label="Switch theme, current theme Bright">
                         <i class="fas fa-palette" aria-hidden="true"></i>
                         <span>Theme: <span id="themeToggleLabel">Bright</span></span>
+                    </button>
+                    <button id="sensoryOpen" class="settings-item" type="button" role="menuitem"
+                            title="Fonts, spacing, motion, focus sound, coach tone">
+                        <i class="fas fa-sliders" aria-hidden="true"></i>
+                        <span>Sensory profile</span>
                     </button>
                     <button id="soundsToggle" class="settings-item" type="button"
                             role="menuitemcheckbox" aria-checked="true"
@@ -396,6 +402,57 @@
                 <button id="challengeCancel" class="now-card__button now-card__button--secondary" type="button">
                     Cancel
                 </button>
+            </div>
+        </div>
+    </div>
+    <div id="sensoryWizard" class="quest-map" role="dialog"
+         aria-label="Make Focusly feel right" hidden>
+        <div class="quest-map__card">
+            <header class="quest-map__header">
+                <h2>🎨 Make Focusly feel right</h2>
+                <button id="sensoryDone" class="now-card__button now-card__button--primary"
+                        type="button">Done</button>
+            </header>
+            <div class="quest-map__body">
+                <p class="challenge-modal__line">Everything here is a preference,
+                changeable any time from ⚙ → Sensory profile.</p>
+                <section class="map-island"><h3>Reading style</h3>
+                    <div class="pref-row">
+                        <button class="coach-chip" data-pref="font:nunito" type="button">Rounded (default)</button>
+                        <button class="coach-chip" data-pref="font:lexend" type="button">Lexend</button>
+                        <button class="coach-chip" data-pref="font:dyslexic" type="button">OpenDyslexic</button>
+                    </div>
+                    <div class="pref-row">
+                        <button class="coach-chip" data-pref="spacing:normal" type="button">Normal spacing</button>
+                        <button class="coach-chip" data-pref="spacing:roomy" type="button">Roomy spacing</button>
+                        <button class="coach-chip" data-pref="textSize:normal" type="button">Normal size</button>
+                        <button class="coach-chip" data-pref="textSize:large" type="button">Larger text</button>
+                    </div>
+                </section>
+                <section class="map-island"><h3>Motion</h3>
+                    <div class="pref-row">
+                        <button class="coach-chip" data-pref="motion:full" type="button">Playful (spins, confetti)</button>
+                        <button class="coach-chip" data-pref="motion:minimal" type="button">Minimal (calm highlights only)</button>
+                    </div>
+                </section>
+                <section class="map-island"><h3>Focus sound <span class="now-card__kicker-soft">· helps some people concentrate; plays only while this tab is open</span></h3>
+                    <div class="pref-row">
+                        <button class="coach-chip" data-pref="ambient:off" type="button">Off</button>
+                        <button class="coach-chip" data-pref="ambient:white" type="button">White noise</button>
+                        <button class="coach-chip" data-pref="ambient:pink" type="button">Pink noise</button>
+                        <button class="coach-chip" data-pref="ambient:brown" type="button">Brown noise</button>
+                    </div>
+                    <label class="timer-dropdown__row"><span>Volume</span>
+                        <input id="ambientVol" type="range" min="0" max="60" value="25"
+                               aria-label="Focus sound volume">
+                    </label>
+                </section>
+                <section class="map-island"><h3>Blox's tone</h3>
+                    <div class="pref-row">
+                        <button class="coach-chip" data-pref="tone:warm" type="button">Warm and encouraging</button>
+                        <button class="coach-chip" data-pref="tone:brief" type="button">Just the facts, brief</button>
+                    </div>
+                </section>
             </div>
         </div>
     </div>

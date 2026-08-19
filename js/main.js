@@ -171,6 +171,7 @@ function initWorkspace() {
     setupCoachChat();
     setupCodeBridge(workspace);
     if (typeof setupJuice === 'function') setupJuice(workspace);
+    if (typeof setupSensory === 'function') setupSensory();
     // Blox's 3D self appears from the start (a beat after load, so it
     // never competes with startup), not just on the first question.
     setTimeout(() => { if (typeof ensureBloxSpinner === 'function') ensureBloxSpinner(); }, 1200);
@@ -1067,7 +1068,8 @@ function pointGhostCursorAt(target) {
     if (!rect.width && !rect.height) return;
     const el = ghostCursorElement();
     const reduced =
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+        document.body.classList.contains('acb-no-motion');
     const endX = rect.left + rect.width / 2;
     const endY = rect.top + rect.height / 2 + 6;
 
@@ -1926,6 +1928,7 @@ async function aiCoach(mode, extra = {}, timeoutMs = 2500) {
         lastOutput: (typeof acbLastRunOutput === 'string') ?
             acbLastRunOutput.slice(0, 400) : '',
         lastError: acbLastRunError || '',
+        tone: (typeof acbProfile === 'function') ? acbProfile().tone : 'warm',
         task: acbTaskEngine && acbTaskEngine.task ? {
             title: acbTaskEngine.task.title,
             stepIndex: acbTaskEngine.stepNumber(),
