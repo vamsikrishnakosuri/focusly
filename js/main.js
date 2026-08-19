@@ -175,6 +175,8 @@ function initWorkspace() {
     setupWorkspaceSearch(workspace);
     if (typeof setupStepper === 'function') setupStepper(workspace);
     if (typeof setupWalkthrough === 'function') setupWalkthrough(workspace);
+    if (typeof setupReplay === 'function') setupReplay(workspace);
+    if (typeof setupRefactor === 'function') setupRefactor(workspace);
     // Blox's 3D self appears from the start (a beat after load, so it
     // never competes with startup), not just on the first question.
     setTimeout(() => { if (typeof ensureBloxSpinner === 'function') ensureBloxSpinner(); }, 1200);
@@ -1221,6 +1223,18 @@ function setupQuests(workspace) {
         }
     };
 
+    /** Parsons seeding: scatter the step's given pieces on an empty canvas. */
+    const seedParsons = (step) => {
+        if (workspace.getAllBlocks(false).length) return;
+        step.parsons.forEach((state, i) => {
+            try {
+                const block = Blockly.serialization.blocks.append(
+                    state, workspace);
+                block.moveBy(40 + (i % 2) * 280, 30 + Math.floor(i / 2) * 130);
+            } catch (e) { /* a bad piece is skipped, not fatal */ }
+        });
+    };
+
     const renderPips = () => {
         const pips = document.getElementById('questPips');
         const steps = document.getElementById('questSteps');
@@ -1271,8 +1285,16 @@ function setupQuests(workspace) {
         }
         nowCard.hidden = false;
         hideCoachHint();
-        if (showAllBlocks) { restoreToolbox(); } else { narrowToolbox(step.blocks); }
-        renderStepChips(step);
+        if (step.parsons) {
+            // Parsons mode: every piece is already on the canvas, scrambled.
+            narrowToolbox([]);
+            seedParsons(step);
+        } else if (showAllBlocks) {
+            restoreToolbox();
+        } else {
+            narrowToolbox(step.blocks);
+        }
+        renderStepChips(step.parsons ? {blocks: []} : step);
         renderPips();
         renderChecklist();
     };

@@ -485,3 +485,84 @@ for (const task of ACB_TASKS) {
   }
   task.steps.forEach((step, i) => { step.check = checks[i]; });
 }
+
+
+/* ------------------------------------------------------------------------ */
+/* Parsons quests: the whole program is given, scrambled; assembling it is   */
+/* the puzzle. The toolbox goes empty - zero block-hunting, pure structure.  */
+/* ------------------------------------------------------------------------ */
+
+ACB_TASKS.push({
+    id: 'untangle-hello',
+    title: '🧩 Untangle: say hi 3 times',
+    level: 'beginner',
+    xp: 100,
+    steps: [{
+        text: 'All the blocks you need are already on the canvas, just ' +
+            'scrambled. Snap them into one stack that says hi three times, ' +
+            'then press Run.',
+        blocks: ['controls_repeat_ext', 'text_print'],
+        parsons: [
+            {type: 'controls_repeat_ext', inputs: {TIMES: {block:
+                {type: 'math_number', fields: {NUM: 3}}}}},
+            {type: 'text_print', inputs: {TEXT: {block:
+                {type: 'text', fields: {TEXT: 'hi'}}}}},
+        ],
+        check: {
+            within: [{child: 'text_print', of: 'controls_repeat_ext'}],
+            singleStack: true,
+            output: {includes: ['hi']},
+        },
+        hints: [
+            'Every piece is already here. One block is a container: which ' +
+                'block is meant to hold another block inside it?',
+            'The print block belongs inside the repeat block. Drag the ' +
+                'print block into the repeat block\'s opening.',
+            'Put the print block inside the repeat block so it reads ' +
+                '"repeat 3 times, print hi". Then press Run: hi appears ' +
+                'three times.',
+        ],
+    }],
+});
+
+ACB_TASKS.push({
+    id: 'untangle-count',
+    title: '🧩 Untangle: count by twos',
+    level: 'intermediate',
+    xp: 150,
+    steps: [{
+        text: 'The pieces of a counting program are scattered on the ' +
+            'canvas. Arrange them into one stack that prints 2, 4, 6.',
+        blocks: ['variables_set', 'controls_repeat_ext', 'math_change',
+            'text_print'],
+        parsons: [
+            {type: 'variables_set', fields: {VAR: {name: 'count'}},
+                inputs: {VALUE: {block:
+                    {type: 'math_number', fields: {NUM: 0}}}}},
+            {type: 'controls_repeat_ext', inputs: {TIMES: {block:
+                {type: 'math_number', fields: {NUM: 3}}}}},
+            {type: 'math_change', fields: {VAR: {name: 'count'}},
+                inputs: {DELTA: {block:
+                    {type: 'math_number', fields: {NUM: 2}}}}},
+            {type: 'text_print', inputs: {TEXT: {block:
+                {type: 'variables_get', fields: {VAR: {name: 'count'}}}}}},
+        ],
+        check: {
+            singleStack: true,
+            within: [
+                {child: 'math_change', of: 'controls_repeat_ext'},
+                {child: 'text_print', of: 'controls_repeat_ext'},
+            ],
+            output: {includes: ['2', '4', '6']},
+        },
+        hints: [
+            'Read the goal again: start at 0, grow by 2 each round. Which ' +
+                'block has to run first, before any repeating?',
+            'Order matters: the set block comes first, then the repeat ' +
+                'block. The change block and the print block go inside ' +
+                'the repeat.',
+            'Build: set count to 0, then repeat 3 times holding change ' +
+                'count by 2 followed by print count. Run shows 2, 4, 6.',
+        ],
+    }],
+});
