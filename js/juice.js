@@ -227,6 +227,7 @@ function dailyProgress(eventName) {
         changed = true;
     }
     if (changed) acbWriteJson(key, state);
+    setupPatterns(workspace);
     paintMapChipDot();
     // Cosmetics apply on load, and again once the 3D Blox exists.
     applyCosmetics();
@@ -453,6 +454,7 @@ function setupJuice(workspace) {
             () => dailyProgress('blox'));
     }
 
+    setupPatterns(workspace);
     paintMapChipDot();
     // Cosmetics apply on load, and again once the 3D Blox exists.
     applyCosmetics();
@@ -569,4 +571,109 @@ function celebrateConfetti() {
         document.body.appendChild(bit);
         setTimeout(() => bit.remove(), 1900);
     }
+}
+
+
+/* ------------------------------------------------------------------------ */
+/* Patterns: insertable idioms - the reusable "plans" the literature says   */
+/* palettes lack. Each is a plain block-state; insert appends to the        */
+/* workspace, never replaces it.                                            */
+/* ------------------------------------------------------------------------ */
+
+/* Tiny builders keep the pattern definitions readable and balanced. */
+function pBlock(type, fields, inputs, next) {
+    const block = {type};
+    if (fields) block.fields = fields;
+    if (inputs) block.inputs = inputs;
+    if (next) block.next = {block: next};
+    return block;
+}
+const pIn = (block) => ({block});
+const pNum = (n) => pBlock('math_number', {NUM: n});
+const pTxt = (t) => pBlock('text', {TEXT: t});
+const pGet = (name) => pBlock('variables_get', {VAR: {name}});
+const pSet = (name, valueBlock, next) =>
+    pBlock('variables_set', {VAR: {name}}, {VALUE: pIn(valueBlock)}, next);
+const pPrint = (inner, next) =>
+    pBlock('text_print', null, {TEXT: pIn(inner)}, next);
+const pChange = (name, deltaBlock, next) =>
+    pBlock('math_change', {VAR: {name}}, {DELTA: pIn(deltaBlock)}, next);
+const pRepeat = (times, doBlock, next) =>
+    pBlock('controls_repeat_ext', null,
+        {TIMES: pIn(pNum(times)), DO: pIn(doBlock)}, next);
+
+const ACB_PATTERNS = [
+    {id: 'counting-loop', name: 'Counting loop',
+     desc: 'A variable walks 1, 2, 3... and gets printed each time.',
+     state: pBlock('controls_for', {VAR: {name: 'i'}}, {
+         FROM: pIn(pNum(1)), TO: pIn(pNum(5)), BY: pIn(pNum(1)),
+         DO: pIn(pPrint(pGet('i'))),
+     })},
+    {id: 'accumulator', name: 'Accumulator',
+     desc: 'A total that grows inside a loop, printed at the end.',
+     state: pSet('total', pNum(0),
+         pRepeat(5, pChange('total', pNum(2)),
+             pPrint(pGet('total'))))},
+    {id: 'decision', name: 'Decision (if / else)',
+     desc: 'Test a value and say different things on each branch.',
+     state: pBlock('controls_if', null, {
+         IF0: pIn(pBlock('logic_compare', {OP: 'GT'},
+             {A: pIn(pNum(10)), B: pIn(pNum(5))})),
+         DO0: pIn(pPrint(pTxt('bigger'))),
+         ELSE: pIn(pPrint(pTxt('smaller or equal'))),
+     })},
+    {id: 'greeting', name: 'Greeting builder',
+     desc: 'Fixed words joined with a variable, then printed.',
+     state: pSet('name', pTxt('Alex'),
+         pPrint(pBlock('text_join', null, {
+             ADD0: pIn(pTxt('Hello, ')), ADD1: pIn(pGet('name')),
+         })))},
+    {id: 'countdown', name: 'Countdown',
+     desc: 'A number shrinks to zero, then something happens.',
+     state: pSet('left', pNum(5),
+         pRepeat(5, pPrint(pGet('left'), pChange('left', pNum(-1))),
+             pPrint(pTxt('Go!'))))},
+];
+ACB_PATTERNS[2].state.extraState = {hasElse: true};
+ACB_PATTERNS[3].state.next.block.inputs.TEXT.block.extraState = {itemCount: 2};
+
+function setupPatterns(workspace) {
+    const modal = document.getElementById('patternsModal');
+    const grid = document.getElementById('patternsGrid');
+    if (!modal || !grid) return;
+
+    grid.innerHTML = ACB_PATTERNS.map((pattern) =>
+        `<button type="button" class="map-node" data-pattern="${pattern.id}">` +
+        `<span class="map-node__mark">+</span>` +
+        `<span><strong>${pattern.name}</strong><br>` +
+        `<span class="now-card__kicker-soft">${pattern.desc}</span></span>` +
+        `</button>`).join('');
+
+    grid.querySelectorAll('[data-pattern]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const pattern = ACB_PATTERNS.find(
+                (x) => x.id === button.dataset.pattern);
+            try {
+                const block = Blockly.serialization.blocks.append(
+                    JSON.parse(JSON.stringify(pattern.state)), workspace);
+                block.moveBy(40 + Math.floor(Math.random() * 5) * 20,
+                             40 + Math.floor(Math.random() * 5) * 20);
+                if (typeof Blockly.svgResize === 'function') {
+                    Blockly.svgResize(workspace);
+                }
+                showXpToast(`+ ${pattern.name} added - make it yours`);
+            } catch (e) {
+                console.error('pattern insert failed', e);
+            }
+            modal.hidden = true;
+        });
+    });
+
+    document.getElementById('coachPatternsButton')
+        ?.addEventListener('click', () => { modal.hidden = false; });
+    document.getElementById('patternsClose')
+        ?.addEventListener('click', () => { modal.hidden = true; });
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) modal.hidden = true;
+    });
 }

@@ -26,6 +26,8 @@ const ACB_PROFILE_DEFAULTS = {
     motion: 'full',        // full | minimal
     tone: 'warm',          // warm | brief
     ambient: 'off',        // off | white | pink | brown
+    readAloud: 'off',      // off | on   (coach messages + step reader)
+    companion: 'off',      // off | on   (body-double presence)
     ambientVol: 0.25,
 };
 
@@ -72,6 +74,7 @@ function applyProfile(profile) {
     document.documentElement.style.setProperty('--acb-text-scale',
         p.textSize === 'large' ? '1.12' : '1');
     document.body.classList.toggle('acb-no-motion', p.motion === 'minimal');
+    if (typeof applyCompanion === 'function') applyCompanion(p);
     // Ambient + tone are read live by their consumers.
     acbAmbient.apply(p);
 }
@@ -196,4 +199,75 @@ function setupSensory() {
     try { seen = localStorage.getItem('acb.profileSeen') === 'true'; }
     catch (e) { /* fine */ }
     if (!seen) setTimeout(openSensoryWizard, 1600);
+}
+
+
+/* ------------------------------------------------------------------------ */
+/* Read-aloud: Web Speech API. The speaker button on the step card always   */
+/* works; the profile toggle additionally reads coach messages aloud.       */
+/* ------------------------------------------------------------------------ */
+
+function acbSpeak(text) {
+    try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(String(text));
+        utterance.rate = 1.0;
+        window.speechSynthesis.speak(utterance);
+    } catch (e) { /* speech is optional */ }
+}
+
+function acbMaybeSpeakCoach(text) {
+    if (acbProfile().readAloud === 'on') acbSpeak(text);
+}
+
+/* ------------------------------------------------------------------------ */
+/* Body double: Blox keeps you gentle company. A slow idle turn (motion      */
+/* permitting) and an occasional soft presence line - never a demand.        */
+/* Evidence: 85% of surveyed neurodivergent users report body doubling      */
+/* improves task completion; AI companions measured similarly (2025).        */
+/* ------------------------------------------------------------------------ */
+
+let acbCompanionTimer = null;
+let acbCompanionSpin = null;
+
+const ACB_PRESENCE_LINES = [
+    'Still here, working alongside you.',
+    'No rush. I am right here.',
+    'Your pace is the right pace.',
+    'Here with you. The next small step is enough.',
+];
+let acbPresenceIndex = 0;
+
+function applyCompanion(profile) {
+    const p = profile || acbProfile();
+    clearInterval(acbCompanionTimer);
+    acbCompanionTimer = null;
+    if (acbCompanionSpin) { cancelAnimationFrame(acbCompanionSpin); acbCompanionSpin = null; }
+    if (p.companion !== 'on') return;
+
+    // Soft presence line every ~9 minutes, only while the tab is visible
+    // and Blox is not mid-conversation.
+    acbCompanionTimer = setInterval(() => {
+        if (document.visibilityState === 'hidden') return;
+        const message = document.getElementById('coachMessage');
+        if (!message || message.classList.contains('is-thinking')) return;
+        const line = ACB_PRESENCE_LINES[acbPresenceIndex++ %
+            ACB_PRESENCE_LINES.length];
+        message.textContent = line;
+    }, 9 * 60 * 1000);
+
+    // A very slow idle turn, motion permitting.
+    const noMotion = document.body.classList.contains('acb-no-motion') ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (noMotion) return;
+    const spin = () => {
+        if (acbProfile().companion !== 'on') return;
+        const state = (typeof bloxSpinState !== 'undefined') ? bloxSpinState : null;
+        if (state && !state.spinning) {
+            state.model.rotation.y += 0.004;
+            state.renderer.render(state.scene, state.camera);
+        }
+        acbCompanionSpin = requestAnimationFrame(spin);
+    };
+    acbCompanionSpin = requestAnimationFrame(spin);
 }

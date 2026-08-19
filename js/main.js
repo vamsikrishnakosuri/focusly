@@ -937,6 +937,9 @@ function coachSay(text) {
     message.classList.remove('is-thinking');
     message.textContent = text;
     if (typeof bloxSpinStop === 'function') bloxSpinStop();
+    if (typeof acbMaybeSpeakCoach === 'function') {
+        acbMaybeSpeakCoach(String(text).replace(/^\u2728\s*/, ''));
+    }
 }
 
 /** A visible "working on it" state, so waiting never looks like nothing. */
@@ -1580,6 +1583,13 @@ function setupQuests(workspace) {
 
     document.getElementById('nowCardStuck')?.addEventListener('click', () => {
         revealNextHint();
+    });
+
+    document.getElementById('nowCardSpeak')?.addEventListener('click', () => {
+        const step = acbTaskEngine.currentStep();
+        if (step && typeof acbSpeak === 'function') {
+            acbSpeak(`Step ${acbTaskEngine.stepNumber()}. ${step.text}`);
+        }
     });
 
     document.getElementById('nowCardRestart')?.addEventListener('click', () => {

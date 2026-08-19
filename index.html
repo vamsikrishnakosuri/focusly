@@ -226,7 +226,8 @@
                     <span>NOW · STEP <span id="nowCardStepNum">1</span>
                     <span class="now-card__kicker-soft">· one small thing</span>
                     <span id="nowCardXp" class="now-card__kicker-soft"></span></span>
-                    <button id="nowCardRestart" class="now-card__restart" type="button"
+                    <button id="nowCardSpeak" class="now-card__restart" type="button"
+                            title="Read this step aloud" aria-label="Read this step aloud">&#128266;</button>                    <button id="nowCardRestart" class="now-card__restart" type="button"
                             title="Start this quest over from step 1">↺ Start over</button>
                 </p>
                 <p id="nowCardText" class="now-card__text"></p>
@@ -339,6 +340,10 @@
                     <ol id="coachChecklistItems" class="coach-checklist__items"></ol>
                 </div>
                 <div class="coach-card__buttons" role="group" aria-label="Ask Blox">
+                    <button id="coachPatternsButton" class="coach-chip" type="button"
+                            title="Insert a ready-made pattern of blocks to build on">
+                        &#128218; Patterns
+                    </button>
                     <button id="coachExplainButton" class="coach-chip" type="button">
                         What does this block do?
                     </button>
@@ -457,12 +462,34 @@
                                aria-label="Focus sound volume">
                     </label>
                 </section>
+                <section class="map-island"><h3>Read aloud &amp; company</h3>
+                    <div class="pref-row">
+                        <button class="coach-chip" data-pref="readAloud:off" type="button">Read aloud off</button>
+                        <button class="coach-chip" data-pref="readAloud:on" type="button">Read Blox's replies aloud</button>
+                        <button class="coach-chip" data-pref="companion:off" type="button">Companion off</button>
+                        <button class="coach-chip" data-pref="companion:on" type="button">Blox works alongside me</button>
+                    </div>
+                </section>
                 <section class="map-island"><h3>Blox's tone</h3>
                     <div class="pref-row">
                         <button class="coach-chip" data-pref="tone:warm" type="button">Warm and encouraging</button>
                         <button class="coach-chip" data-pref="tone:brief" type="button">Just the facts, brief</button>
                     </div>
                 </section>
+            </div>
+        </div>
+    </div>
+    <div id="patternsModal" class="quest-map" role="dialog" aria-label="Block patterns" hidden>
+        <div class="quest-map__card">
+            <header class="quest-map__header">
+                <h2>&#128218; Patterns</h2>
+                <button id="patternsClose" class="coach-chip" type="button"
+                        aria-label="Close patterns">&#10005;</button>
+            </header>
+            <div class="quest-map__body">
+                <p class="challenge-modal__line">Ready-made shapes programmers
+                reuse. Insert one, then change it to make it yours.</p>
+                <div id="patternsGrid" class="map-island__nodes"></div>
             </div>
         </div>
     </div>
