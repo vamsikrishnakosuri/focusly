@@ -172,6 +172,7 @@ function initWorkspace() {
     setupCodeBridge(workspace);
     if (typeof setupJuice === 'function') setupJuice(workspace);
     if (typeof setupSensory === 'function') setupSensory();
+    setupWorkspaceSearch(workspace);
     // Blox's 3D self appears from the start (a beat after load, so it
     // never competes with startup), not just on the first question.
     setTimeout(() => { if (typeof ensureBloxSpinner === 'function') ensureBloxSpinner(); }, 1200);
@@ -207,6 +208,19 @@ function initWorkspace() {
             // Restore original console.log after execution
             restoreConsole();
         }
+        // Watchers: surface every variable's final value from this run.
+        // Direct eval of the generated code declares its vars in this
+        // scope, so we can read them back by name right here.
+        try {
+            const declared = [...new Set((document.getElementById('codeOutput')
+                .textContent.match(/var (\w+)/g) || [])
+                .map((m) => m.slice(4)))];
+            const values = {};
+            for (const name of declared) {
+                try { values[name] = eval(name); } catch (e) { /* unset */ }
+            }
+            renderRunVars(values);
+        } catch (e) { /* watchers are optional */ }
         // Let the quest engine check whether this run completed the step.
         document.dispatchEvent(new CustomEvent('acb-run-finished'));
     });
@@ -445,6 +459,8 @@ function clearOutput() {
     outputPanel.innerHTML = '';
     outputLineCount = 0;
     acbLastRunOutput = '';
+    const runVars = document.getElementById('runVars');
+    if (runVars) { runVars.hidden = true; runVars.innerHTML = ''; }
 }
 
 function appendOutput(text) {
@@ -2579,4 +2595,105 @@ function syncFocusModeStepBlocks(workspace) {
         types.add('VARIABLE');
     }
     focusMode.setStepBlocks(Array.from(types));
+}
+
+
+/* ------------------------------------------------------------------------ */
+/* Variable watchers: after a run, every variable's final value sits under   */
+/* the Output header. Bret Victor's rule - show the state.                   */
+/* ------------------------------------------------------------------------ */
+
+function renderRunVars(values) {
+    const holder = document.getElementById('runVars');
+    if (!holder) return;
+    const names = Object.keys(values);
+    if (!names.length) { holder.hidden = true; return; }
+    holder.innerHTML = names.map((name) => {
+        let shown;
+        try {
+            shown = JSON.stringify(values[name]);
+            if (shown && shown.length > 40) shown = shown.slice(0, 37) + '...';
+        } catch (e) { shown = String(values[name]); }
+        return `<span class="run-var"><span class="run-var__name">${name}</span>` +
+            ` = ${shown ?? 'undefined'}</span>`;
+    }).join('');
+    holder.hidden = false;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Workspace search: Ctrl+F finds blocks by their readable text, Enter       */
+/* cycles matches, the found block glows and centres. A decade-old Scratch   */
+/* ask; trivial on Blockly's tree.                                           */
+/* ------------------------------------------------------------------------ */
+
+function setupWorkspaceSearch(workspace) {
+    const box = document.getElementById('wsSearch');
+    const input = document.getElementById('wsSearchInput');
+    const count = document.getElementById('wsSearchCount');
+    if (!box || !input) return;
+    let matches = [];
+    let index = -1;
+
+    const clearGlow = () => {
+        document.querySelectorAll('.acb-search-hit')
+            .forEach((el) => el.classList.remove('acb-search-hit'));
+    };
+
+    const showMatch = () => {
+        clearGlow();
+        if (!matches.length) {
+            count.textContent = input.value.trim() ? '0' : '';
+            return;
+        }
+        index = ((index % matches.length) + matches.length) % matches.length;
+        const block = matches[index];
+        count.textContent = `${index + 1}/${matches.length}`;
+        try {
+            workspace.centerOnBlock(block.id);
+            block.getSvgRoot().classList.add('acb-search-hit');
+        } catch (e) { /* block may have vanished */ }
+    };
+
+    const runSearch = () => {
+        const q = input.value.trim().toLowerCase();
+        matches = !q ? [] : workspace.getAllBlocks(false).filter((b) => {
+            try { return b.toString().toLowerCase().includes(q); }
+            catch (e) { return false; }
+        });
+        index = 0;
+        showMatch();
+    };
+
+    const close = () => {
+        box.hidden = true;
+        clearGlow();
+        input.value = '';
+        count.textContent = '';
+    };
+
+    document.addEventListener('keydown', (event) => {
+        const typing = /INPUT|TEXTAREA/.test(document.activeElement?.tagName) ||
+            document.activeElement?.isContentEditable;
+        if ((event.ctrlKey || event.metaKey) && event.key === 'f' &&
+            (!typing || document.activeElement === input)) {
+            event.preventDefault();
+            box.hidden = false;
+            input.focus();
+            input.select();
+        }
+    });
+
+    input.addEventListener('input', runSearch);
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            index += event.shiftKey ? -1 : 1;
+            showMatch();
+        } else if (event.key === 'Escape') {
+            event.stopPropagation();
+            close();
+        }
+    });
+    document.getElementById('wsSearchClose')
+        ?.addEventListener('click', close);
 }

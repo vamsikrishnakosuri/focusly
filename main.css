@@ -2809,3 +2809,103 @@ body.acb-no-motion *::after {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001s !important;
 }
+
+/* Sparks shop + confetti */
+.map-sparks {
+    margin: 0 0 8px;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.shop-item__buy {
+    font-size: 0.72rem;
+    padding: 4px 8px;
+}
+
+.shop-item__buy:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.confetti-bit {
+    position: fixed;
+    top: -12px;
+    width: 9px;
+    height: 14px;
+    border-radius: 2px;
+    z-index: 16000;
+    pointer-events: none;
+    animation: confetti-fall 1.7s ease-in forwards;
+}
+
+@keyframes confetti-fall {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+    100% {
+        transform: translate(var(--drift, 0px), 105vh) rotate(540deg);
+        opacity: 0.7;
+    }
+}
+
+/* Workspace search + watchers */
+.ws-search {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 150;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--acb-card-bg);
+    border: 1px solid var(--acb-card-border);
+    border-radius: 10px;
+    box-shadow: var(--acb-shadow);
+    padding: 6px 8px;
+}
+
+.ws-search[hidden] { display: none; }
+
+.ws-search input {
+    border: none;
+    outline: none;
+    font-family: var(--acb-font);
+    font-size: 0.88rem;
+    width: 190px;
+    background: transparent;
+}
+
+.ws-search__count {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--acb-ink-soft);
+    min-width: 30px;
+    text-align: center;
+}
+
+.acb-search-hit > .blocklyPath {
+    stroke: #f59e2d;
+    stroke-width: 3.4px;
+    filter: drop-shadow(0 0 7px rgba(245, 158, 45, 0.85));
+}
+
+.run-vars {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--acb-card-border);
+    background: #fbfaf6;
+}
+
+.run-vars[hidden] { display: none; }
+
+.run-var {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    background: var(--acb-mint);
+    border: 1px solid #d3e9dc;
+    color: var(--acb-mint-ink);
+    border-radius: 7px;
+    padding: 2px 8px;
+}
+
+.run-var__name { font-weight: 700; }

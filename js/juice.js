@@ -228,6 +228,9 @@ function dailyProgress(eventName) {
     }
     if (changed) acbWriteJson(key, state);
     paintMapChipDot();
+    // Cosmetics apply on load, and again once the 3D Blox exists.
+    applyCosmetics();
+    setTimeout(applyCosmetics, 3500);
 }
 
 function paintMapChipDot() {
@@ -321,7 +324,9 @@ function renderQuestMap() {
         `<ul class="map-dailies">${dailiesHtml}</ul></section>` +
         islandsHtml + customHtml +
         `<section class="map-island"><h3>🏅 Badges</h3>` +
-        `<div class="map-badges">${badgesHtml}</div></section>`;
+        `<div class="map-badges">${badgesHtml}</div></section>` +
+        `<section class="map-island"><h3>\u2726 Spark shop</h3>` +
+        `<div id="mapShop"></div></section>`;
 
     body.querySelectorAll('.map-node').forEach((node) => {
         node.addEventListener('click', () => {
@@ -338,6 +343,7 @@ function openQuestMap() {
     const map = document.getElementById('questMap');
     if (!map) return;
     renderQuestMap();
+    renderShop();
     map.hidden = false;
 }
 function closeQuestMap() {
@@ -392,9 +398,12 @@ function setupJuice(workspace) {
     // Celebration + record hooks.
     document.addEventListener('acb-task', (event) => {
         const action = event.detail?.action;
-        if (action === 'step') playChime('step');
+        if (action === 'step') { playChime('step'); addSparks(1); }
+        if (action === 'daily') addSparks(1);
         if (action === 'complete') {
             playChime('quest');
+            addSparks(5);
+            celebrateConfetti();
             const finished = ACB_TASKS.find?.((t) => t.id === event.detail.taskId);
             recordQuestDone(event.detail.taskId, finished?.level);
             if (typeof acbTaskEngine !== 'undefined' && acbTaskEngine &&
@@ -445,4 +454,119 @@ function setupJuice(workspace) {
     }
 
     paintMapChipDot();
+    // Cosmetics apply on load, and again once the 3D Blox exists.
+    applyCosmetics();
+    setTimeout(applyCosmetics, 3500);
+}
+
+
+/* ------------------------------------------------------------------------ */
+/* Sparks: the token economy (evidence: token-economy RCT improved ADHD     */
+/* attention). Earned deterministically, spent on cosmetics in the map      */
+/* shop. Never required for progress; never random.                         */
+/* ------------------------------------------------------------------------ */
+
+function sparksBalance() {
+    return Number(acbReadJson('acb.sparks', 0)) || 0;
+}
+function addSparks(n) {
+    acbWriteJson('acb.sparks', sparksBalance() + n);
+}
+
+const ACB_SHOP = [
+    {id: 'blox-sky', kind: 'tint', name: 'Sky Blox', emoji: '\ud83d\udfe6',
+     price: 8, value: 0x4b7be5},
+    {id: 'blox-sunset', kind: 'tint', name: 'Sunset Blox', emoji: '\ud83d\udfe7',
+     price: 8, value: 0xf59e2d},
+    {id: 'blox-royal', kind: 'tint', name: 'Royal Blox', emoji: '\ud83d\udfea',
+     price: 8, value: 0x8e6bd8},
+    {id: 'accent-ocean', kind: 'accent', name: 'Ocean accent', emoji: '\ud83c\udf0a',
+     price: 12, value: '#2273b8'},
+    {id: 'accent-berry', kind: 'accent', name: 'Berry accent', emoji: '\ud83e\uded0',
+     price: 12, value: '#a2447e'},
+];
+
+function cosmetics() {
+    return acbReadJson('acb.cosmetics', {owned: [], tint: null, accent: null});
+}
+
+function applyCosmetics() {
+    const c = cosmetics();
+    const accentItem = ACB_SHOP.find((i) => i.id === c.accent);
+    document.documentElement.style.setProperty('--acb-green',
+        accentItem ? accentItem.value : '#178a5e');
+    document.documentElement.style.setProperty('--acb-green-dark',
+        accentItem ? accentItem.value : '#0f7a52');
+    const tintItem = ACB_SHOP.find((i) => i.id === c.tint);
+    if (typeof bloxSpinState !== 'undefined' && bloxSpinState) {
+        bloxSpinState.model.traverse((node) => {
+            if (node.material && node.material.name === 'blox_green') {
+                node.material.color.setHex(tintItem ? tintItem.value : 0x008d43);
+            }
+        });
+        bloxSpinState.renderer.render(bloxSpinState.scene, bloxSpinState.camera);
+    }
+}
+
+function renderShop() {
+    const holder = document.getElementById('mapShop');
+    if (!holder) return;
+    const c = cosmetics();
+    const items = ACB_SHOP.map((item) => {
+        const owned = c.owned.includes(item.id);
+        const equipped = c.tint === item.id || c.accent === item.id;
+        const action = !owned ? `Buy \u00b7 ${item.price} \u2726` :
+            equipped ? 'Equipped \u2713' : 'Equip';
+        return `<div class="map-badge is-earned shop-item">` +
+            `<span class="map-badge__emoji">${item.emoji}</span>` +
+            `<span class="map-badge__name">${item.name}</span>` +
+            `<button type="button" class="coach-chip shop-item__buy" ` +
+            `data-item="${item.id}" ${(!owned && sparksBalance() < item.price) ?
+                'disabled' : ''}>${action}</button></div>`;
+    }).join('');
+    holder.innerHTML =
+        `<p class="map-sparks">You have <strong>${sparksBalance()} \u2726 sparks</strong>` +
+        ` \u00b7 earn 1 per step, 5 per quest, 1 per daily</p>` +
+        `<div class="map-badges">${items}</div>`;
+    holder.querySelectorAll('.shop-item__buy').forEach((button) => {
+        button.addEventListener('click', () => {
+            const item = ACB_SHOP.find((i) => i.id === button.dataset.item);
+            const state = cosmetics();
+            if (!state.owned.includes(item.id)) {
+                if (sparksBalance() < item.price) return;
+                addSparks(-item.price);
+                state.owned.push(item.id);
+                playChime('badge');
+            }
+            if (item.kind === 'tint') {
+                state.tint = state.tint === item.id ? null : item.id;
+            } else {
+                state.accent = state.accent === item.id ? null : item.id;
+            }
+            acbWriteJson('acb.cosmetics', state);
+            applyCosmetics();
+            renderShop();
+        });
+    });
+}
+
+/* ------------------------------------------------------------------------ */
+/* Confetti: a short, deterministic celebration. Fully disabled by the      */
+/* minimal-motion profile and prefers-reduced-motion.                        */
+/* ------------------------------------------------------------------------ */
+
+function celebrateConfetti() {
+    if (document.body.classList.contains('acb-no-motion') ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const colors = ['#178a5e', '#4b7be5', '#f59e2d', '#f4c430', '#8e6bd8'];
+    for (let i = 0; i < 26; i++) {
+        const bit = document.createElement('div');
+        bit.className = 'confetti-bit';
+        bit.style.left = (30 + Math.random() * 40) + 'vw';
+        bit.style.background = colors[i % colors.length];
+        bit.style.animationDelay = (Math.random() * 0.25) + 's';
+        bit.style.setProperty('--drift', (Math.random() * 160 - 80) + 'px');
+        document.body.appendChild(bit);
+        setTimeout(() => bit.remove(), 1900);
+    }
 }

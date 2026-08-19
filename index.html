@@ -212,6 +212,14 @@
              tabindex="0"
              aria-label="Blockly workspace">
             <div id="blocklyDiv" class="editor-panel"></div>
+            <div id="wsSearch" class="ws-search" hidden>
+                <label class="sr-only" for="wsSearchInput">Find a block</label>
+                <input id="wsSearchInput" type="text" placeholder="Find block... (Enter = next)"
+                       autocomplete="off">
+                <span id="wsSearchCount" class="ws-search__count"></span>
+                <button id="wsSearchClose" class="coach-chip" type="button"
+                        aria-label="Close search">&#10005;</button>
+            </div>
             <!-- The one small step the learner is on right now -->
             <div id="nowCard" class="now-card" role="region" aria-label="Current step" hidden>
                 <p class="now-card__kicker" style="display: flex; align-items: center; gap: 6px;">
@@ -290,6 +298,8 @@
                     </select>
                 </div>
                 <div id="outputTabPanel" class="io-panel" role="tabpanel" aria-labelledby="outputTabButton">
+                    <div id="runVars" class="run-vars" hidden
+                         aria-label="Variable values after the run"></div>
                     <div id="outputPanel" class="output-content" data-output="line" aria-describedby="blockReader" aria-label="Output panel">
                         <!-- Output lines will be appended here dynamically -->
                     </div>
