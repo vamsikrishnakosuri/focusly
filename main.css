@@ -3197,3 +3197,58 @@ body.acb-no-motion .coach-card.has-companion .coach-card__avatar::after {
     border-left: 3px solid var(--acb-green, #1a936f);
     border-radius: 0 8px 8px 0;
 }
+
+/* --- Build together: presence bar + navigator pane --- */
+.collab-bar {
+    position: fixed;
+    left: 18px;
+    bottom: 18px;
+    z-index: 350;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--acb-panel, #fff);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 14px;
+    padding: 8px 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+    font-size: 13px;
+}
+
+.collab-bar__room { font-weight: 800; }
+
+.collab-bar__name {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 9px;
+    padding: 3px 9px;
+}
+.collab-bar__name.is-driving {
+    background: rgba(26, 147, 111, 0.14);
+    color: var(--acb-green, #1a936f);
+    font-weight: 700;
+}
+
+.collab-bar__you { color: var(--acb-green, #1a936f); font-weight: 700; }
+
+.collab-pane {
+    position: absolute;
+    z-index: 40;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 14px;
+    background: rgba(250, 250, 248, 0.25);
+    pointer-events: all;
+    cursor: not-allowed;
+}
+.collab-pane span {
+    background: var(--acb-panel, #fff);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 12.5px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.collab-modal__rule { border: 0; border-top: 1px dashed rgba(0,0,0,0.15); margin: 14px 0; }
+.collab-modal__card { max-width: 430px; }
