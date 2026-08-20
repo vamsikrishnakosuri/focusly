@@ -2953,3 +2953,76 @@ body.acb-no-motion *::after {
 }
 
 .replay-bar[hidden] { display: none; }
+
+
+/* --- "What is this?" block callout --- */
+.block-callout {
+    position: fixed;
+    z-index: 400;
+    max-width: 300px;
+    background: var(--acb-panel, #fff);
+    border: 2px solid #2a2a2a;
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+    font-size: 13.5px;
+    line-height: 1.45;
+    animation: callout-pop 0.16s ease-out;
+}
+
+body.acb-no-motion .block-callout { animation: none; }
+
+@keyframes callout-pop {
+    from { transform: scale(0.92); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* The tail: points left at the block (default), or up when placed below. */
+.block-callout::before {
+    content: '';
+    position: absolute;
+    left: -11px;
+    top: 22px;
+    width: 18px;
+    height: 18px;
+    background: inherit;
+    border-left: 2px solid #2a2a2a;
+    border-bottom: 2px solid #2a2a2a;
+    transform: rotate(45deg);
+    border-bottom-left-radius: 4px;
+}
+
+.block-callout--below::before {
+    left: 26px;
+    top: -11px;
+    transform: rotate(135deg);
+}
+
+.block-callout__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.block-callout__title { font-size: 13px; }
+
+.block-callout__close {
+    border: 0;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 4px;
+    border-radius: 8px;
+}
+.block-callout__close:hover { background: rgba(0, 0, 0, 0.07); }
+
+.block-callout__text, .block-callout__more { margin: 0 0 8px; }
+.block-callout__more {
+    padding-top: 8px;
+    border-top: 1px dashed rgba(0, 0, 0, 0.18);
+}
+
+.block-callout__actions { display: flex; justify-content: flex-end; }
