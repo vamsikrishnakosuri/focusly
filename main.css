@@ -2951,3 +2951,5 @@ body.acb-no-motion *::after {
     color: var(--acb-muted, #667);
     min-width: 110px;
 }
+
+.replay-bar[hidden] { display: none; }
