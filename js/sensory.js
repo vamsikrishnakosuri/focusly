@@ -225,6 +225,16 @@ function setupSensory() {
     const wizard = document.getElementById('sensoryWizard');
     if (!wizard) return;
 
+    // The little (i) on each section: tap to read what the options do.
+    wizard.querySelectorAll('.pref-info').forEach((button) => {
+        button.addEventListener('click', () => {
+            const text = button.closest('h3').nextElementSibling;
+            if (!text || !text.classList.contains('pref-info__text')) return;
+            text.hidden = !text.hidden;
+            button.setAttribute('aria-expanded', String(!text.hidden));
+        });
+    });
+
     wizard.querySelectorAll('[data-pref]').forEach((el) => {
         el.addEventListener('click', () => {
             const [key, value] = el.dataset.pref.split(':');

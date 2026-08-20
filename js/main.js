@@ -2223,8 +2223,14 @@ function setupCoachChat() {
             acbChatHistory.push({from: 'coach', text: ai.text});
             coachSay(`✨ ${ai.text}`);
         } else {
-            coachSay('I could not answer just now. Try once more, or use ' +
-                'the hint button.');
+            const withYou = (typeof acbProfile === 'function' &&
+                acbProfile().companion === 'on');
+            coachSay(withYou ?
+                'My thinking part could not reach the server just now, ' +
+                'but I am not going anywhere. Catch your breath, try once ' +
+                'more in a moment, or take a hint - I will wait right here.' :
+                'I could not answer just now. Try once more in a moment, ' +
+                'or use the hint button - it works without the server.');
         }
     });
 }

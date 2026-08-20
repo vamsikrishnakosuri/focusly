@@ -3173,3 +3173,27 @@ body.acb-break-open .acb-break-nudge { display: none; }
 body.acb-no-motion .coach-card.has-companion .coach-card__avatar::after {
     animation: none;
 }
+
+/* The (i) explainers in the sensory profile. */
+.pref-info {
+    border: 0;
+    background: none;
+    cursor: pointer;
+    font-size: 15px;
+    color: var(--acb-muted, #667);
+    padding: 2px 5px;
+    border-radius: 8px;
+    vertical-align: middle;
+}
+.pref-info:hover { background: rgba(0, 0, 0, 0.06); color: var(--acb-green, #1a936f); }
+
+.pref-info__text {
+    margin: 4px 0 10px;
+    padding: 9px 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--acb-muted, #445);
+    background: rgba(26, 147, 111, 0.07);
+    border-left: 3px solid var(--acb-green, #1a936f);
+    border-radius: 0 8px 8px 0;
+}
