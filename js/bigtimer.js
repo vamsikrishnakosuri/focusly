@@ -56,13 +56,17 @@ function bigTimerRender() {
 
     const paused = typeof timer.isPaused === 'function' && timer.isPaused();
     const ms = Math.max(0, timer.remainingMs());
-    const m = Math.floor(ms / 60000);
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
     const s = Math.floor((ms % 60000) / 1000);
+    const time = h > 0 ?
+        `${h}h ${String(m).padStart(2, '0')}m ` +
+            `${String(s).padStart(2, '0')}s` :
+        `${m}m ${String(s).padStart(2, '0')}s`;
     const label = paused ? 'paused' :
         state === 'break' ? 'break' :
         state === 'nudging' ? 'break?' : 'until break';
-    el.innerHTML = `<span class="big-timer__time">${m}m ` +
-        `${String(s).padStart(2, '0')}s</span>` +
+    el.innerHTML = `<span class="big-timer__time">${time}</span>` +
         `<span class="big-timer__label">${label}</span>`;
 
     el.className = `big-timer big-timer--${prefs.size} ` +

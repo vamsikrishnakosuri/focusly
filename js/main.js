@@ -711,31 +711,51 @@ function setupBreakTimerChip() {
     const toggleButton = document.getElementById('timerToggleButton');
     const toggleLabel = document.getElementById('timerToggleButtonLabel');
 
-    // "12m 05s" - explicit units; a bare 12:05 reads as clock time.
+    // "12m 05s" / "1h 05m 30s" - explicit units; a bare 12:05 reads as
+    // clock time.
     const mmss = (ms) => {
-        const m = Math.floor(ms / 60000);
+        const h = Math.floor(ms / 3600000);
+        const m = Math.floor((ms % 3600000) / 60000);
         const s = Math.floor((ms % 60000) / 1000);
-        return `${m}m ${String(s).padStart(2, '0')}s`;
+        return h > 0 ?
+            `${h}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s` :
+            `${m}m ${String(s).padStart(2, '0')}s`;
     };
 
-    /** 25.5 minutes -> "25:30". */
+    /** 25.5 minutes -> "25:30"; 90 minutes -> "1:30:00". */
     const minutesToMmss = (minutes) => {
         const total = Math.round((Number(minutes) || 0) * 60);
-        return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+        const h = Math.floor(total / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const sec = total % 60;
+        return h > 0 ?
+            `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` :
+            `${m}:${String(sec).padStart(2, '0')}`;
     };
 
     /**
-     * "25", "25:30", "0:45" -> minutes (possibly fractional). Returns null
-     * for garbage or out-of-range values.
+     * "25", "25:30", "1:30:00" -> minutes (possibly fractional). Two
+     * numbers mean minutes:seconds; three mean hours:minutes:seconds.
+     * Returns null for garbage or out-of-range values.
      * @param {string} raw
      * @param {number} minSeconds
      * @param {number} maxSeconds
      */
     const parseMmss = (raw, minSeconds, maxSeconds) => {
-        const match = String(raw).trim().match(/^(\d{1,3})(?::([0-5]?\d))?$/);
-        if (!match) return null;
-        const seconds = Number(match[1]) * 60 + Number(match[2] || 0);
-        if (seconds < minSeconds || seconds > maxSeconds) return null;
+        const text = String(raw).trim();
+        let seconds = null;
+        let match = text.match(/^(\d{1,2}):([0-5]?\d):([0-5]?\d)$/);
+        if (match) {
+            seconds = Number(match[1]) * 3600 + Number(match[2]) * 60 +
+                Number(match[3]);
+        } else {
+            match = text.match(/^(\d{1,3})(?::([0-5]?\d))?$/);
+            if (match) {
+                seconds = Number(match[1]) * 60 + Number(match[2] || 0);
+            }
+        }
+        if (seconds === null || seconds < minSeconds ||
+            seconds > maxSeconds) return null;
         return seconds / 60;
     };
 
@@ -836,7 +856,8 @@ function setupBreakTimerChip() {
         }
     });
 
-    // Free-typed times, MM:SS. Work: 1:00 to 120:00. Break: 0:30 to 30:00.
+    // Free-typed times, MM:SS or H:MM:SS.
+    // Work: 1:00 up to 4 hours. Break: 0:30 up to 2 hours.
     const commitTime = (input, key, minSeconds, maxSeconds) => {
         const minutes = parseMmss(input.value, minSeconds, maxSeconds);
         if (minutes === null) {
@@ -848,9 +869,9 @@ function setupBreakTimerChip() {
         paint();
     };
     workInput?.addEventListener('change',
-        () => commitTime(workInput, 'workMinutes', 60, 7200));
+        () => commitTime(workInput, 'workMinutes', 60, 14400));
     breakInput?.addEventListener('change',
-        () => commitTime(breakInput, 'breakMinutes', 30, 1800));
+        () => commitTime(breakInput, 'breakMinutes', 30, 7200));
     for (const input of [workInput, breakInput]) {
         input?.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') { event.preventDefault(); input.blur(); }
