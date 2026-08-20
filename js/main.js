@@ -310,6 +310,8 @@ function setupCodeBridge(workspace) {
         return;
     }
 
+    let preEditState = null;   // workspace snapshot for Cancel
+
     const setEditing = (editing) => {
         editButton.hidden = editing;
         applyButton.hidden = !editing;
@@ -331,6 +333,9 @@ function setupCodeBridge(workspace) {
         }
         generateCode();
         const source = pre.textContent;
+        try {
+            preEditState = Blockly.serialization.workspaces.save(workspace);
+        } catch (e) { preEditState = null; }
         editButton.disabled = true;
         try {
             await ensureMonaco();
@@ -350,14 +355,23 @@ function setupCodeBridge(workspace) {
                 automaticLayout: true,
                 scrollBeyondLastLine: false,
             });
-            // Live checking: as they type, show exactly which lines cannot
-            // become blocks yet and why - not just a squiggle.
+            // Live sync: as they type, problem lines are explained - and the
+            // moment the code converts cleanly, the blocks update to match,
+            // so editing "5" to "7" changes the block right away. Cancel
+            // restores the snapshot taken when editing began.
             let liveTimer = null;
             acbMonacoEditor.onDidChangeModelContent(() => {
                 clearTimeout(liveTimer);
                 liveTimer = setTimeout(() => {
                     if (host.hidden) return;
-                    paintBridgeProblems(codeToBlocks(acbMonacoEditor.getValue()));
+                    const result = codeToBlocks(acbMonacoEditor.getValue());
+                    paintBridgeProblems(result);
+                    if (result.ok) {
+                        try {
+                            Blockly.serialization.workspaces.load(
+                                result.state, workspace);
+                        } catch (e) { /* apply stays available */ }
+                    }
                 }, 600);
             });
         } else {
@@ -394,7 +408,16 @@ function setupCodeBridge(workspace) {
             })));
     };
 
-    cancelButton.addEventListener('click', () => setEditing(false));
+    cancelButton.addEventListener('click', () => {
+        // Live sync may have rewritten the canvas: put it back exactly.
+        if (preEditState) {
+            try {
+                Blockly.serialization.workspaces.load(preEditState, workspace);
+            } catch (e) { /* nothing better to do */ }
+        }
+        generateCode();
+        setEditing(false);
+    });
 
     applyButton.addEventListener('click', () => {
         if (!acbMonacoEditor) return;
