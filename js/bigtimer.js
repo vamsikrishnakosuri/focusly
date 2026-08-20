@@ -10,7 +10,7 @@
 const ACB_BIGTIMER_DEFAULTS = {
     show: 'on',            // on | off
     size: 'm',             // s | m | l
-    pos: 'top-center',     // top-left | top-center | top-right | bottom-right
+    pos: 'header',         // header | top-left | top-center | top-right | bottom-right
     color: 'green',        // green | purple | blue | ink
 };
 
@@ -69,6 +69,20 @@ function bigTimerRender() {
         `big-timer--${prefs.pos}`;
     el.style.color = ACB_BIGTIMER_COLORS[prefs.color] ||
         ACB_BIGTIMER_COLORS.green;
+
+    if (prefs.pos === 'header') {
+        // The calm home: the app bar's empty middle, off the workspace.
+        const bar = document.querySelector('.app-bar');
+        const status = document.querySelector('.app-bar__status');
+        if (bar && el.parentElement !== bar) {
+            bar.insertBefore(el, status || null);
+        }
+        el.style.top = el.style.bottom = el.style.left = el.style.right = '';
+        el.style.transform = '';
+        el.hidden = false;
+        return;
+    }
+    if (el.parentElement !== document.body) document.body.appendChild(el);
 
     // Anchor to the workspace's own rectangle, whatever the layout.
     const canvas = document.getElementById('blocklyDiv');

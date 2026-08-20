@@ -3381,3 +3381,16 @@ body.acb-focus-mode.acb-fhide-quest .focus-goal { visibility: visible; }
 
 .focus-view__mark { margin-right: 6px; }
 .settings-heading { }
+
+
+/* Header placement: the timer lives in the app bar's empty middle. */
+.big-timer--header {
+    position: static;
+    margin-left: auto;
+    margin-right: 14px;
+    pointer-events: none;
+    align-self: center;
+}
+.big-timer--header.big-timer--s .big-timer__time { font-size: 16px; }
+.big-timer--header.big-timer--m .big-timer__time { font-size: 23px; }
+.big-timer--header.big-timer--l .big-timer__time { font-size: 32px; }
