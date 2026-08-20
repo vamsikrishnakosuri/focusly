@@ -89,13 +89,15 @@ const acbAmbient = {
     gain: null,
 
     buffer(kind, ctx) {
-        const seconds = 4;
+        // Longer loops for the scenes so the repetition is not noticeable.
+        const seconds = {ocean: 16, rain: 8, wind: 12, fire: 10}[kind] || 4;
         const rate = ctx.sampleRate;
         const buffer = ctx.createBuffer(1, rate * seconds, rate);
         const data = buffer.getChannelData(0);
-        let b0 = 0, b1 = 0, b2 = 0, last = 0;
+        let b0 = 0, b1 = 0, b2 = 0, last = 0, lp = 0;
         for (let i = 0; i < data.length; i++) {
             const white = Math.random() * 2 - 1;
+            const t = i / rate;
             if (kind === 'white') {
                 data[i] = white * 0.28;
             } else if (kind === 'pink') {
@@ -104,10 +106,64 @@ const acbAmbient = {
                 b1 = 0.96300 * b1 + white * 0.2965164;
                 b2 = 0.57000 * b2 + white * 1.0526913;
                 data[i] = (b0 + b1 + b2 + white * 0.1848) * 0.12;
-            } else {  // brown
+            } else if (kind === 'brown') {
                 last = (last + 0.02 * white) / 1.02;
                 data[i] = last * 3.2;
+            } else if (kind === 'rain') {
+                // Steady hiss (softened white) - droplets are added below.
+                lp += 0.18 * (white - lp);
+                data[i] = lp * 0.4;
+            } else if (kind === 'ocean') {
+                // Deep noise breathing on two slow, out-of-phase swells.
+                last = (last + 0.02 * white) / 1.02;
+                const swell = 0.5 + 0.32 * Math.sin(2 * Math.PI * 0.0625 * t) +
+                    0.18 * Math.sin(2 * Math.PI * 0.146 * t + 1.7);
+                data[i] = last * 3.0 * Math.max(0.12, swell);
+            } else if (kind === 'wind') {
+                // Softened noise whose tone and strength wander slowly.
+                const a = 0.03 + 0.024 * (1 + Math.sin(2 * Math.PI * 0.05 * t));
+                lp += a * (white - lp);
+                const gust = 0.65 + 0.35 * Math.sin(2 * Math.PI * 0.083 * t + 0.9);
+                data[i] = lp * 1.15 * gust;
+            } else if (kind === 'fire') {
+                // A low ember rumble - crackles are added below.
+                last = (last + 0.02 * white) / 1.02;
+                data[i] = last * 1.1;
             }
+        }
+        if (kind === 'rain') {
+            // Individual droplets: short decaying pings at random moments.
+            const drops = Math.floor(seconds * 22);
+            for (let d = 0; d < drops; d++) {
+                const at = Math.floor(Math.random() * (data.length - 500));
+                const f = 900 + Math.random() * 1900;
+                const amp = 0.05 + Math.random() * 0.09;
+                for (let j = 0; j < 420; j++) {
+                    data[at + j] += Math.sin(2 * Math.PI * f * j / rate) *
+                        amp * Math.exp(-j / 90);
+                }
+            }
+        } else if (kind === 'fire') {
+            // Crackles: sparse noise bursts with a fast decay.
+            const pops = Math.floor(seconds * 12);
+            for (let p = 0; p < pops; p++) {
+                const at = Math.floor(Math.random() * (data.length - 900));
+                const amp = 0.10 + Math.random() * 0.22;
+                const decay = 60 + Math.random() * 320;
+                for (let j = 0; j < 800; j++) {
+                    data[at + j] += (Math.random() * 2 - 1) *
+                        amp * Math.exp(-j / decay);
+                }
+            }
+        }
+        // Normalize each loop to the same comfortable peak.
+        let peak = 0;
+        for (let i = 0; i < data.length; i++) {
+            peak = Math.max(peak, Math.abs(data[i]));
+        }
+        if (peak > 0) {
+            const s = 0.3 / peak;
+            for (let i = 0; i < data.length; i++) data[i] *= s;
         }
         return buffer;
     },
