@@ -48,6 +48,8 @@
     <script src="./js/blox_moods.js"></script>
     <script src="./js/share.js"></script>
     <script src="./js/collab.js"></script>
+    <script src="./js/bigtimer.js"></script>
+    <script src="./js/focus_view.js"></script>
 </head>
 <body onload="initWorkspace()">
   <div id="root">
@@ -124,6 +126,24 @@
                         <i class="fas fa-pause" aria-hidden="true"></i>
                         <span id="timerPauseButtonLabel">Pause timer</span>
                     </button>
+                    <p class="settings-heading">Big countdown on canvas</p>
+                    <div class="timer-dropdown__bt-row">
+                        <button class="coach-chip" data-bt="show:on" type="button">Show</button>
+                        <button class="coach-chip" data-bt="show:off" type="button">Hide</button>
+                        <button class="coach-chip" data-bt="size:s" type="button">Small</button>
+                        <button class="coach-chip" data-bt="size:m" type="button">Medium</button>
+                        <button class="coach-chip" data-bt="size:l" type="button">Large</button>
+                    </div>
+                    <div class="timer-dropdown__bt-row">
+                        <button class="coach-chip" data-bt="pos:top-left" type="button">Top left</button>
+                        <button class="coach-chip" data-bt="pos:top-center" type="button">Top center</button>
+                        <button class="coach-chip" data-bt="pos:top-right" type="button">Top right</button>
+                        <button class="coach-chip" data-bt="pos:bottom-right" type="button">Bottom right</button>
+                        <button class="bt-swatch" data-bt="color:green" style="background:#1a936f" type="button" aria-label="Green"></button>
+                        <button class="bt-swatch" data-bt="color:purple" style="background:#765BA6" type="button" aria-label="Purple"></button>
+                        <button class="bt-swatch" data-bt="color:blue" style="background:#5B85A6" type="button" aria-label="Blue"></button>
+                        <button class="bt-swatch" data-bt="color:ink" style="background:#333a3f" type="button" aria-label="Ink"></button>
+                    </div>
                     <button id="timerToggleButton" class="settings-item" type="button">
                         <i class="fas fa-power-off" aria-hidden="true"></i>
                         <span id="timerToggleButtonLabel">Turn timer off</span>
@@ -216,6 +236,8 @@
                         </select>
                     </label>
                     <div class="settings-divider" role="separator"></div>
+                    <p class="settings-heading">In Focus Mode, hide:</p>
+                    <div id="focusViewList"></div>
                     <p class="settings-heading" id="layoutHeading">Panel layout</p>
                     <button id="layoutSide" class="settings-item" type="button"
                             role="menuitemradio" aria-checked="true">

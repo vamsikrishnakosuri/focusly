@@ -183,6 +183,8 @@ function initWorkspace() {
     if (typeof setupBloxMoods === 'function') setupBloxMoods();
     if (typeof setupShare === 'function') setupShare(workspace);
     if (typeof setupCollab === 'function') setupCollab(workspace);
+    if (typeof setupBigTimer === 'function') setupBigTimer();
+    if (typeof setupFocusView === 'function') setupFocusView();
     // Blox's 3D self appears from the start (a beat after load, so it
     // never competes with startup), not just on the first question.
     setTimeout(() => { if (typeof ensureBloxSpinner === 'function') ensureBloxSpinner(); }, 1200);
@@ -709,8 +711,12 @@ function setupBreakTimerChip() {
     const toggleButton = document.getElementById('timerToggleButton');
     const toggleLabel = document.getElementById('timerToggleButtonLabel');
 
-    const mmss = (ms) => (typeof formatCountdown === 'function') ?
-        formatCountdown(ms) : Math.ceil(ms / 60000) + ' min';
+    // "12m 05s" - explicit units; a bare 12:05 reads as clock time.
+    const mmss = (ms) => {
+        const m = Math.floor(ms / 60000);
+        const s = Math.floor((ms % 60000) / 1000);
+        return `${m}m ${String(s).padStart(2, '0')}s`;
+    };
 
     /** 25.5 minutes -> "25:30". */
     const minutesToMmss = (minutes) => {
