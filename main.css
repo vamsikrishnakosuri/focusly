@@ -3055,3 +3055,6 @@ body.acb-no-motion .block-callout { animation: none; }
 }
 
 .walk-bubble__actions { justify-content: flex-start; gap: 6px; }
+
+/* The countdown ring only appears while the timer is actually counting. */
+#breakTimerChip.is-off .chip__arc { display: none; }
