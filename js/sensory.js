@@ -277,42 +277,103 @@ function acbMaybeSpeakCoach(text) {
 }
 
 /* ------------------------------------------------------------------------ */
-/* Body double: Blox keeps you gentle company. A slow idle turn (motion      */
-/* permitting) and an occasional soft presence line - never a demand.        */
-/* Evidence: 85% of surveyed neurodivergent users report body doubling      */
-/* improves task completion; AI companions measured similarly (2025).        */
+/* Body double: Blox keeps you gentle company - and you can tell he is       */
+/* there. A green presence dot on his avatar, an immediate hello, the cube   */
+/* idling in a slow turn, quiet acknowledgments while you work, and a soft   */
+/* re-engage line after an idle spell. Presence, never surveillance and     */
+/* never a demand. Evidence: 85% of surveyed neurodivergent users report    */
+/* body doubling improves task completion; AI companions measured           */
+/* similarly (2025).                                                         */
 /* ------------------------------------------------------------------------ */
 
 let acbCompanionTimer = null;
 let acbCompanionSpin = null;
+let acbCompanionLastActivity = 0;
+let acbCompanionIdleNudged = false;
+let acbCompanionSinceLine = 0;
+let acbCompanionListening = false;
+
+// Test hooks: shrink these to fast-forward the companion in a harness.
+let ACB_COMPANION_TICK_MS = 60 * 1000;        // heartbeat
+let ACB_COMPANION_IDLE_MS = 4 * 60 * 1000;    // silence before a nudge
+let ACB_COMPANION_LINE_EVERY = 4;             // active ticks between lines
 
 const ACB_PRESENCE_LINES = [
     'Still here, working alongside you.',
     'No rush. I am right here.',
     'Your pace is the right pace.',
     'Here with you. The next small step is enough.',
+    'That stack is coming along. I am around.',
+];
+const ACB_IDLE_LINES = [
+    'No pressure. One small block whenever you are ready.',
+    'Taking a moment is fine. I will be here when you look back.',
+    'Stuck or resting? Either is okay. Tap "I\'m stuck" if you want a hand.',
 ];
 let acbPresenceIndex = 0;
+let acbIdleIndex = 0;
+
+function acbCompanionSay(line) {
+    if (document.visibilityState === 'hidden') return;
+    const message = document.getElementById('coachMessage');
+    if (!message || message.classList.contains('is-thinking')) return;
+    message.textContent = line;
+}
+
+function acbCompanionActivity() {
+    acbCompanionLastActivity = Date.now();
+    acbCompanionIdleNudged = false;
+}
 
 function applyCompanion(profile) {
     const p = profile || acbProfile();
     clearInterval(acbCompanionTimer);
     acbCompanionTimer = null;
     if (acbCompanionSpin) { cancelAnimationFrame(acbCompanionSpin); acbCompanionSpin = null; }
+    document.querySelector('.coach-card')
+        ?.classList.toggle('has-companion', p.companion === 'on');
     if (p.companion !== 'on') return;
 
-    // Soft presence line every ~9 minutes, only while the tab is visible
-    // and Blox is not mid-conversation.
+    // You should FEEL the switch flip: an immediate hello, and the cube
+    // loads now (not lazily on the first AI thought) so it can idle.
+    acbCompanionSay('I am here. Let us build together.');
+    if (typeof ensureBloxSpinner === 'function') ensureBloxSpinner();
+
+    // Presence follows activity, not just a clock: any workspace event,
+    // key, or click counts as "working together".
+    if (!acbCompanionListening) {
+        acbCompanionListening = true;
+        for (const type of ['pointerdown', 'keydown']) {
+            document.addEventListener(type, acbCompanionActivity, true);
+        }
+        document.addEventListener('acb-task', acbCompanionActivity);
+    }
+    acbCompanionActivity();
+    acbCompanionSinceLine = 0;
+
     acbCompanionTimer = setInterval(() => {
         if (document.visibilityState === 'hidden') return;
-        const message = document.getElementById('coachMessage');
-        if (!message || message.classList.contains('is-thinking')) return;
-        const line = ACB_PRESENCE_LINES[acbPresenceIndex++ %
-            ACB_PRESENCE_LINES.length];
-        message.textContent = line;
-    }, 9 * 60 * 1000);
+        const idleFor = Date.now() - acbCompanionLastActivity;
+        if (idleFor >= ACB_COMPANION_IDLE_MS) {
+            // One gentle re-engage per idle spell - the classic body-double
+            // "still with you", never an alarm, never repeated.
+            if (!acbCompanionIdleNudged) {
+                acbCompanionIdleNudged = true;
+                acbCompanionSay(ACB_IDLE_LINES[acbIdleIndex++ %
+                    ACB_IDLE_LINES.length]);
+            }
+            return;
+        }
+        // Actively working: an occasional quiet acknowledgment.
+        acbCompanionSinceLine++;
+        if (acbCompanionSinceLine >= ACB_COMPANION_LINE_EVERY) {
+            acbCompanionSinceLine = 0;
+            acbCompanionSay(ACB_PRESENCE_LINES[acbPresenceIndex++ %
+                ACB_PRESENCE_LINES.length]);
+        }
+    }, ACB_COMPANION_TICK_MS);
 
-    // A very slow idle turn, motion permitting.
+    // The cube keeps you company with a very slow idle turn.
     const noMotion = document.body.classList.contains('acb-no-motion') ||
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (noMotion) return;

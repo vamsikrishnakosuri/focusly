@@ -3150,3 +3150,26 @@ body.acb-no-motion .break-scene__breath { animation: none; }
 
 /* The plugin's small corner card is redundant behind the scene. */
 body.acb-break-open .acb-break-nudge { display: none; }
+
+/* Companion presence: a soft green "with you" dot on Blox's avatar. */
+.coach-card.has-companion .coach-card__avatar { position: relative; }
+.coach-card.has-companion .coach-card__avatar::after {
+    content: '';
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--acb-green, #1a936f);
+    border: 2px solid var(--acb-panel, #fff);
+    animation: companion-pulse 3.2s ease-in-out infinite;
+}
+
+@keyframes companion-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(26, 147, 111, 0.45); }
+    55% { box-shadow: 0 0 0 6px rgba(26, 147, 111, 0); }
+}
+body.acb-no-motion .coach-card.has-companion .coach-card__avatar::after {
+    animation: none;
+}
