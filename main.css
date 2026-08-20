@@ -3026,3 +3026,13 @@ body.acb-no-motion .block-callout { animation: none; }
 }
 
 .block-callout__actions { display: flex; justify-content: flex-end; }
+
+.block-callout--wide { max-width: 360px; }
+
+.block-callout__img {
+    display: block;
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 0 0 8px;
+    background: #fff;
+}

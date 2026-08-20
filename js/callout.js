@@ -29,8 +29,11 @@ function calloutEsc(event) {
     if (event.key === 'Escape') calloutClose();
 }
 
-/** github.com/{o}/{r}/wiki/{Page} -> summarized raw markdown, or null. */
-async function fetchWikiSummary(helpUrl) {
+/**
+ * github.com/{o}/{r}/wiki/{Page} -> {text, images} pulled from the page's
+ * raw markdown, or null when it cannot be fetched.
+ */
+async function fetchWikiDetails(helpUrl) {
     try {
         const url = typeof helpUrl === 'function' ? helpUrl() : helpUrl;
         const m = String(url || '').match(
@@ -38,10 +41,18 @@ async function fetchWikiSummary(helpUrl) {
         if (!m) return null;
         const raw = `https://raw.githubusercontent.com/wiki/${m[1]}/${m[2]}/${m[3]}.md`;
         const ctrl = new AbortController();
-        setTimeout(() => ctrl.abort(), 4500);
+        setTimeout(() => ctrl.abort(), 5000);
         const res = await fetch(raw, {signal: ctrl.signal});
         if (!res.ok) return null;
         const md = await res.text();
+        // The page's illustrations: absolute URLs pass through, wiki-relative
+        // ones (like "if-if.png") resolve against the wiki's raw root.
+        const wikiBase = `https://raw.githubusercontent.com/wiki/${m[1]}/${m[2]}/`;
+        const images = [...md.matchAll(/!\[[^\]]*\]\(([^)\s]+)\)/g)]
+            .map((match) => match[1])
+            .filter((src) => /\.(png|gif|jpe?g|svg|webp)([?#]|$)/i.test(src))
+            .map((src) => /^https?:\/\//.test(src) ? src : wikiBase + src)
+            .slice(0, 2);
         const text = md
             .replace(/```[\s\S]*?```/g, ' ')
             .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
@@ -50,8 +61,11 @@ async function fetchWikiSummary(helpUrl) {
             .replace(/[*_`>|]/g, '')
             .replace(/\s+/g, ' ')
             .trim();
-        if (!text) return null;
-        return text.length > 460 ? text.slice(0, 457) + '…' : text;
+        if (!text && !images.length) return null;
+        return {
+            text: text.length > 620 ? text.slice(0, 617) + '…' : text,
+            images,
+        };
     } catch (e) {
         return null;
     }
@@ -113,36 +127,58 @@ async function showBlockCallout(block, workspace) {
 
     if (typeof acbMaybeSpeakCoach === 'function') acbMaybeSpeakCoach(local);
 
+    // "Tell me more" pulls the block's own guide page - words and pictures -
+    // into the bubble. Only when the fetch fails does it fall back to a link
+    // that opens the full page, so the help URL is never wasted.
     el.querySelector('.block-callout__tellmore')
         .addEventListener('click', async (event) => {
             const button = event.currentTarget;
             button.disabled = true;
-            button.textContent = 'Blox is thinking…';
-            if (typeof bloxSpinStart === 'function') bloxSpinStart();
-            let more = null;
-            let live = false;
-            try {
-                const ai = await aiCoach('chat', {question:
-                    `Go deeper on the "${type}" block itself: what it does, ` +
-                    'when to reach for it, and one tiny example. Keep the ' +
-                    'answer about this block, not my current quest.'}, 20000);
-                if (ai && ai.text) { more = ai.text; live = true; }
-            } catch (e) { /* fall through */ }
-            if (!more) more = await fetchWikiSummary(block.helpUrl);
-            if (!more) {
-                more = (typeof ACB_BLOCK_EXPLANATIONS_SIMPLE !== 'undefined' &&
-                    ACB_BLOCK_EXPLANATIONS_SIMPLE[type]) ||
-                    'That is all I have on this one for now. Try it in a ' +
-                    'tiny program and watch what changes.';
-            }
-            if (typeof bloxSpinStop === 'function') bloxSpinStop();
+            button.textContent = 'Fetching the guide…';
+            const details = await fetchWikiDetails(block.helpUrl);
             if (!acbCallout || acbCallout.el !== el) return;  // closed meanwhile
             const moreEl = el.querySelector('.block-callout__more');
-            moreEl.textContent = (live ? '✨ ' : '') + more;
-            moreEl.hidden = false;
-            button.remove();
-            if (typeof acbMaybeSpeakCoach === 'function') {
-                acbMaybeSpeakCoach(more);
+            if (details) {
+                el.classList.add('block-callout--wide');
+                for (const src of details.images) {
+                    const img = document.createElement('img');
+                    img.src = src;
+                    img.alt = `Illustration for the ${type} block`;
+                    img.loading = 'lazy';
+                    img.className = 'block-callout__img';
+                    moreEl.appendChild(img);
+                }
+                if (details.text) {
+                    const p = document.createElement('span');
+                    p.textContent = details.text;
+                    moreEl.appendChild(p);
+                }
+                moreEl.hidden = false;
+                button.remove();
+                if (details.text &&
+                    typeof acbMaybeSpeakCoach === 'function') {
+                    acbMaybeSpeakCoach(details.text);
+                }
+            } else {
+                // Could not reach the guide: hand over the real page.
+                const url = typeof block.helpUrl === 'function' ?
+                    block.helpUrl() : block.helpUrl;
+                if (url) {
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.target = '_blank';
+                    link.rel = 'noopener';
+                    link.className = 'coach-chip';
+                    link.textContent = 'Open the full guide ↗';
+                    button.replaceWith(link);
+                } else {
+                    moreEl.textContent = (typeof
+                        ACB_BLOCK_EXPLANATIONS_SIMPLE !== 'undefined' &&
+                        ACB_BLOCK_EXPLANATIONS_SIMPLE[type]) ||
+                        'That is all I have on this one for now.';
+                    moreEl.hidden = false;
+                    button.remove();
+                }
             }
         });
 
