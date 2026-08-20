@@ -53,11 +53,86 @@ function walkChipsRow() {
 }
 
 function walkStop(workspace) {
-    if (acbWalk) clearInterval(acbWalk.autoTimer);
+    if (acbWalk) {
+        clearInterval(acbWalk.autoTimer);
+        acbWalk.bubble?.remove();
+    }
     acbWalk = null;
+    document.removeEventListener('keydown', walkEscape, true);
     try { workspace.highlightBlock(null); } catch (e) { /* fine */ }
     const row = document.getElementById('coachWalkChips');
     if (row) { row.innerHTML = ''; row.hidden = true; }
+}
+
+function walkEscape(event) {
+    if (event.key === 'Escape' && acbWalk) {
+        walkStop(Blockly.getMainWorkspace());
+    }
+}
+
+/**
+ * The tour bubble: Blox's explanation anchored to the glowing block itself,
+ * with the tour controls inside it, so eyes never leave the workspace.
+ */
+function walkBubble(workspace, block, counter, text) {
+    acbWalk.bubble?.remove();
+    const el = document.createElement('div');
+    el.className = 'block-callout block-callout--walk';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-label', 'Blox walks you through this block');
+    el.innerHTML =
+        '<div class="block-callout__head">' +
+            `<strong class="block-callout__title"></strong>` +
+            '<span class="walk-bubble__count"></span>' +
+        '</div>' +
+        '<p class="block-callout__text"></p>' +
+        '<div class="block-callout__actions walk-bubble__actions">' +
+            '<button class="coach-chip" data-walk="next" type="button">' +
+                'Next ▶</button>' +
+            '<button class="coach-chip" data-walk="auto" type="button">' +
+                '⏩ Auto</button>' +
+            '<button class="coach-chip" data-walk="done" type="button">' +
+                'Done</button>' +
+        '</div>';
+    el.querySelector('.block-callout__title').textContent = 'Blox';
+    el.querySelector('.walk-bubble__count').textContent = counter;
+    el.querySelector('.block-callout__text').textContent = text;
+    el.querySelector('[data-walk="next"]').addEventListener('click',
+        () => walkAdvance(workspace));
+    el.querySelector('[data-walk="done"]').addEventListener('click',
+        () => { walkStop(workspace); coachSay('Anytime. I am here.'); });
+    el.querySelector('[data-walk="auto"]').addEventListener('click',
+        (event) => {
+            if (!acbWalk) return;
+            if (acbWalk.autoTimer) {
+                clearInterval(acbWalk.autoTimer);
+                acbWalk.autoTimer = null;
+                event.currentTarget.textContent = '⏩ Auto';
+                return;
+            }
+            event.currentTarget.textContent = '⏸ Pause';
+            acbWalk.autoTimer = setInterval(
+                () => walkAdvance(workspace), 3400);
+        });
+    if (acbWalk.autoTimer) {
+        el.querySelector('[data-walk="auto"]').textContent = '⏸ Pause';
+    }
+    document.body.appendChild(el);
+    // Anchor beside the block, exactly like the What-is-this bubble.
+    const rect = block.getSvgRoot().getBoundingClientRect();
+    const w = el.offsetWidth || 280;
+    const h = el.offsetHeight || 120;
+    let left = rect.right + 16;
+    let top = rect.top + rect.height / 2 - 24;
+    if (left + w > window.innerWidth - 12) {
+        left = Math.max(12, Math.min(rect.left, window.innerWidth - w - 12));
+        top = rect.bottom + 14;
+        el.classList.add('block-callout--below');
+    }
+    top = Math.max(12, Math.min(top, window.innerHeight - h - 12));
+    el.style.left = `${left}px`;
+    el.style.top = `${top}px`;
+    acbWalk.bubble = el;
 }
 
 function walkShowCurrent(workspace) {
@@ -69,8 +144,24 @@ function walkShowCurrent(workspace) {
     }
     const step = walk.steps[walk.index];
     try { workspace.highlightBlock(step.block.id); } catch (e) { /* fine */ }
-    const count = `(${walk.index + 1} of ${walk.steps.length}) `;
-    coachSay(count + step.text);
+    // Bring an off-screen block into view before anchoring the bubble.
+    try {
+        const view = workspace.getParentSvg().getBoundingClientRect();
+        const rect = step.block.getSvgRoot().getBoundingClientRect();
+        if (rect.top < view.top || rect.bottom > view.bottom ||
+            rect.left < view.left || rect.right > view.right) {
+            workspace.centerOnBlock(step.block.id);
+        }
+    } catch (e) { /* anchoring still works, roughly */ }
+    const counter = `${walk.index + 1} of ${walk.steps.length}`;
+    setTimeout(() => {
+        if (acbWalk === walk && walk.index < walk.steps.length) {
+            walkBubble(workspace, step.block, counter, step.text);
+        }
+    }, 60);
+    if (typeof acbMaybeSpeakCoach === 'function') {
+        acbMaybeSpeakCoach(step.text);
+    }
     return true;
 }
 
@@ -104,30 +195,12 @@ function walkBegin(workspace, tops, all) {
     const steps = [];
     for (const top of tops) walkOrder(top, 0, steps);
     for (const s of steps) s.text = walkText(s);
-    acbWalk = {steps, index: 0, autoTimer: null, all};
-
-    const row = walkChipsRow();
-    row.hidden = false;
-    row.innerHTML =
-        '<button id="walkNext" class="coach-chip" type="button">Next &#9654;</button>' +
-        '<button id="walkAuto" class="coach-chip" type="button">&#9193; Auto</button>' +
-        '<button id="walkStopBtn" class="coach-chip" type="button">Done</button>';
-    document.getElementById('walkNext').addEventListener('click',
-        () => walkAdvance(workspace));
-    document.getElementById('walkAuto').addEventListener('click', () => {
-        if (!acbWalk) return;
-        if (acbWalk.autoTimer) {
-            clearInterval(acbWalk.autoTimer);
-            acbWalk.autoTimer = null;
-            document.getElementById('walkAuto').textContent = '⏩ Auto';
-            return;
-        }
-        document.getElementById('walkAuto').textContent = '⏸ Pause';
-        acbWalk.autoTimer = setInterval(() => walkAdvance(workspace), 3200);
-    });
-    document.getElementById('walkStopBtn').addEventListener('click',
-        () => { walkStop(workspace); coachSay('Anytime. I am here.'); });
-
+    acbWalk = {steps, index: 0, autoTimer: null, all, bubble: null};
+    const row = document.getElementById('coachWalkChips');
+    if (row) { row.innerHTML = ''; row.hidden = true; }
+    document.addEventListener('keydown', walkEscape, true);
+    coachSay('Follow me on the canvas - I will explain each block where ' +
+        'it lives. Esc ends the tour anytime.');
     walkShowCurrent(workspace);
 }
 

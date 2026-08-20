@@ -3043,3 +3043,15 @@ body.acb-no-motion .block-callout { animation: none; }
     overscroll-behavior: contain;
     padding-right: 2px;
 }
+
+/* Walk-tour bubble: same speech-bubble language, Blox-green accent. */
+.block-callout--walk { border-color: var(--acb-green, #1a936f); }
+.block-callout--walk::before { border-color: var(--acb-green, #1a936f); border-top-color: transparent; border-right-color: transparent; }
+
+.walk-bubble__count {
+    font-size: 11.5px;
+    color: var(--acb-muted, #667);
+    white-space: nowrap;
+}
+
+.walk-bubble__actions { justify-content: flex-start; gap: 6px; }
