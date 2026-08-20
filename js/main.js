@@ -180,6 +180,8 @@ function initWorkspace() {
     if (typeof setupCallout === 'function') setupCallout(workspace);
     if (typeof setupUiSounds === 'function') setupUiSounds(workspace);
     if (typeof setupBreakScene === 'function') setupBreakScene();
+    if (typeof setupBloxMoods === 'function') setupBloxMoods();
+    if (typeof setupShare === 'function') setupShare(workspace);
     // Blox's 3D self appears from the start (a beat after load, so it
     // never competes with startup), not just on the first question.
     setTimeout(() => { if (typeof ensureBloxSpinner === 'function') ensureBloxSpinner(); }, 1200);
