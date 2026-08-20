@@ -1,17 +1,140 @@
 /**
  * @fileoverview "What is this?" - right-click any block and Blox answers in
  * a speech bubble pointing at that very block, instead of Blockly's stock
- * Help item that ejects the learner to a GitHub wiki page. Layers:
+ * Help item that ejects the learner to an external page. Layers:
  *
  *   1. Instantly: the local teaching-grade explanation (offline, 0ms).
- *   2. A beat later: Blox's live AI explanation replaces it (sparkle-marked),
- *      aware of the learner's actual workspace.
- *   3. "Tell me more": a deeper dive - AI first; if the server is asleep,
- *      the block's own wiki page is fetched and summarized inline; failing
- *      that, the simpler local explanation. Nobody leaves the app.
+ *   2. A beat later: Blox's live AI explanation replaces it (sparkle-marked).
+ *   3. "Tell me more": the block's own guide - the RIGHT one. Blockly's
+ *      stock helpUrls send half the blocks to Wikipedia (math_arithmetic ->
+ *      wikipedia.org/wiki/Arithmetic) because the official block wiki has no
+ *      Math or Functions pages at all. So ACB_HELP_MAP curates, per block,
+ *      the exact wiki page AND section; that section's text and pictures
+ *      render inside the bubble, with a link to the same spot underneath.
+ *      Blocks with no wiki page anywhere get Blox's own deeper text and no
+ *      misleading external link.
  */
 
 let acbCallout = null;   // {el, blockId}
+
+/**
+ * Per-block guide locations on the Blockly block wiki (the
+ * RaspberryPiFoundation fork, per Vamsi's request; identical pages and
+ * section slugs to google/blockly's, verified against the real headings).
+ * Pages that do not exist on either wiki (Math, Functions - see the wiki's
+ * own Home index) are deliberately absent; those blocks use ACB_DEEP_LOCAL
+ * below instead.
+ */
+const ACB_HELP_MAP = {
+    controls_if: {page: 'IfElse'},
+    logic_compare: {page: 'Logic', anchor: 'comparisons'},
+    logic_operation: {page: 'Logic', anchor: 'logical-operations'},
+    logic_negate: {page: 'Logic', anchor: 'not'},
+    logic_boolean: {page: 'Logic', anchor: 'values'},
+    logic_ternary: {page: 'Logic', anchor: 'ternary-operator'},
+    logic_null: {page: 'Logic', anchor: 'values'},
+    controls_repeat_ext: {page: 'Loops', anchor: 'repeat'},
+    controls_whileUntil: {page: 'Loops', anchor: 'repeat-while'},
+    controls_for: {page: 'Loops', anchor: 'count-with'},
+    controls_forEach: {page: 'Loops', anchor: 'for-each'},
+    controls_flow_statements:
+        {page: 'Loops', anchor: 'loop-termination-blocks'},
+    text: {page: 'Text', anchor: 'text-creation'},
+    text_join: {page: 'Text', anchor: 'text-creation'},
+    text_append: {page: 'Text', anchor: 'text-modification'},
+    text_length: {page: 'Text', anchor: 'text-length'},
+    text_isEmpty: {page: 'Text', anchor: 'checking-for-empty-text'},
+    text_indexOf: {page: 'Text', anchor: 'finding-text'},
+    text_charAt: {page: 'Text', anchor: 'extracting-a-single-character'},
+    text_getSubstring: {page: 'Text', anchor: 'extracting-a-region-of-text'},
+    text_changeCase: {page: 'Text', anchor: 'adjusting-text-case'},
+    text_trim: {page: 'Text', anchor: 'trimming-removing-spaces'},
+    text_count: {page: 'Text', anchor: 'counting-substrings'},
+    text_replace: {page: 'Text', anchor: 'replacing-substrings'},
+    text_reverse: {page: 'Text', anchor: 'reversing-text'},
+    text_print: {page: 'Text', anchor: 'printing-text'},
+    text_prompt_ext: {page: 'Text', anchor: 'getting-input-from-the-user'},
+    lists_create_with: {page: 'Lists', anchor: 'create-list-with'},
+    lists_repeat: {page: 'Lists', anchor: 'create-list-with'},
+    lists_length: {page: 'Lists', anchor: 'length-of'},
+    lists_isEmpty: {page: 'Lists', anchor: 'is-empty'},
+    lists_indexOf: {page: 'Lists', anchor: 'finding-items-in-a-list'},
+    lists_getIndex: {page: 'Lists', anchor: 'getting-items-from-a-list'},
+    lists_setIndex: {page: 'Lists', anchor: 'in-list-set'},
+    lists_getSublist: {page: 'Lists', anchor: 'getting-a-sublist'},
+    lists_split:
+        {page: 'Lists', anchor: 'splitting-strings-and-joining-lists'},
+    lists_sort: {page: 'Lists'},
+    lists_reverse: {page: 'Lists', anchor: 'reversing-a-list'},
+    variables_get: {page: 'Variables', anchor: 'get'},
+    variables_set: {page: 'Variables', anchor: 'set'},
+    math_change: {page: 'Variables', anchor: 'change'},
+};
+
+/**
+ * Deeper local explanations for blocks the wiki does not cover (no Math or
+ * Functions pages exist). Written in Blox's voice: what, when, tiny example.
+ */
+const ACB_DEEP_LOCAL = {
+    math_number: 'A number block is a plain value: 5, 0, -3, 2.5 all work. ' +
+        'On its own it does nothing; snap it into a slot - repeat 5 times, ' +
+        'set count to 0 - and it feeds that block its value.',
+    math_arithmetic: 'Pick the operation from the dropdown: + adds, - ' +
+        'subtracts, × multiplies, ÷ divides, ^ raises to a power. Example: ' +
+        'put 7 and 3 in the slots with × and the block hands over 21. You ' +
+        'can nest them: (2 + 3) × 4 is an arithmetic block inside another.',
+    math_single: 'One-input math: square root, absolute value, negate, ln, ' +
+        'log10, e^ and 10^. Example: square root of 25 hands over 5. ' +
+        'Absolute value turns -8 into 8.',
+    math_trig: 'The triangle functions: sin, cos, tan and their inverses, ' +
+        'working in degrees. Example: sin of 30 hands over 0.5. Mostly ' +
+        'useful for angles, circles, and waves.',
+    math_atan2: 'Gives the angle (in degrees) of the line from (0,0) to ' +
+        'the point (X, Y). Example: atan2 of X=1, Y=1 is 45. Handy for ' +
+        '"which direction is that point?"',
+    math_constant: 'Famous numbers, ready-made: π (3.14159…), e (2.718…), ' +
+        'φ the golden ratio, √2, √½, and infinity. Use π with arithmetic ' +
+        'blocks for anything involving circles.',
+    math_number_property: 'A yes/no test on a number: is it even, odd, ' +
+        'prime, whole, positive, negative, or divisible by another number? ' +
+        'Example: "is 7 prime" hands over true. Snap it where a condition ' +
+        'goes, like inside an if block.',
+    math_round: 'Rounds a decimal to a whole number: round 3.4 gives 3, ' +
+        'round 3.5 gives 4. Round up always climbs (3.1 becomes 4); round ' +
+        'down always drops (3.9 becomes 3).',
+    math_on_list: 'Takes a whole list of numbers and gives one summary: ' +
+        'sum, minimum, maximum, average, median, modes, standard deviation, ' +
+        'or a random item. Example: sum of the list 1, 2, 3 hands over 6.',
+    math_modulo: 'The remainder after dividing. 10 ÷ 3 is 3 remainder 1, ' +
+        'so "remainder of 10 ÷ 3" hands over 1. Classic use: a number is ' +
+        'even when remainder of it ÷ 2 equals 0.',
+    math_constrain: 'Keeps a number inside a range. Constrain 150 between ' +
+        '1 and 100 hands over 100; constrain -5 the same way hands over 1. ' +
+        'Useful to stop a value running away.',
+    math_random_int: 'A surprise whole number between your low and high, ' +
+        'both included. Random integer from 1 to 6 is a dice roll. Run it ' +
+        'again and you will likely get a different result.',
+    math_random_float: 'A surprise decimal between 0 and 1, like 0.7231. ' +
+        'Multiply it to scale it up: random fraction × 100 gives a random ' +
+        'value from 0 up to 100.',
+    procedures_defnoreturn: 'This defines a function: a named bundle of ' +
+        'blocks you can run by name, as many times as you like. Build the ' +
+        'steps once inside it, then use its call block wherever needed. ' +
+        'If you would otherwise copy a stack twice, wrap it here instead.',
+    procedures_defreturn: 'A function that hands a value back. The blocks ' +
+        'inside do the work; whatever sits in the return slot is the ' +
+        'answer the call block delivers. Example: a "double" function ' +
+        'that returns its input × 2.',
+    procedures_callnoreturn: 'Runs your function: one block that stands ' +
+        'for the whole bundle of steps you defined. Change the definition ' +
+        'once and every call updates with it.',
+    procedures_callreturn: 'Runs your function and hands over its returned ' +
+        'value - snap it anywhere a value fits, like into a print block ' +
+        'or a variable.',
+    procedures_ifreturn: 'An early exit for functions: if the condition is ' +
+        'true, stop here and (optionally) return this value, skipping the ' +
+        'rest of the function.',
+};
 
 function calloutClose() {
     if (!acbCallout) return;
@@ -29,30 +152,54 @@ function calloutEsc(event) {
     if (event.key === 'Escape') calloutClose();
 }
 
+/** GitHub's heading -> anchor slug rule (close enough for these pages). */
+function calloutSlug(heading) {
+    return heading.toLowerCase().replace(/[^\w\s-]/g, '').trim()
+        .replace(/\s+/g, '-');
+}
+
 /**
- * github.com/{o}/{r}/wiki/{Page} -> {text, images} pulled from the page's
- * raw markdown, or null when it cannot be fetched.
+ * Cuts the markdown down to just the mapped section: from the heading whose
+ * slug matches `anchor` to the next heading of the same or higher level, so
+ * sub-sections stay included. No anchor (or no match) keeps the whole page.
  */
-async function fetchWikiDetails(helpUrl) {
+function calloutSection(md, anchor) {
+    if (!anchor) return md;
+    const lines = md.split('\n');
+    let start = -1;
+    let level = 0;
+    for (let i = 0; i < lines.length; i++) {
+        const m = lines[i].match(/^(#+)\s*(.+)$/);
+        if (!m) continue;
+        if (start < 0) {
+            if (calloutSlug(m[2]) === anchor) {
+                start = i;
+                level = m[1].length;
+            }
+        } else if (m[1].length <= level) {
+            return lines.slice(start, i).join('\n');
+        }
+    }
+    return start >= 0 ? lines.slice(start).join('\n') : md;
+}
+
+/** Fetches a wiki page and returns {text, images} for one section. */
+async function fetchWikiDetails(page, anchor) {
     try {
-        const url = typeof helpUrl === 'function' ? helpUrl() : helpUrl;
-        const m = String(url || '').match(
-            /github\.com\/([^/]+)\/([^/]+)\/wiki\/([^/#?]+)/);
-        if (!m) return null;
-        const raw = `https://raw.githubusercontent.com/wiki/${m[1]}/${m[2]}/${m[3]}.md`;
+        const base =
+            'https://raw.githubusercontent.com/wiki/RaspberryPiFoundation/blockly/';
         const ctrl = new AbortController();
         setTimeout(() => ctrl.abort(), 5000);
-        const res = await fetch(raw, {signal: ctrl.signal});
+        const res = await fetch(base + page + '.md', {signal: ctrl.signal});
         if (!res.ok) return null;
-        const md = await res.text();
-        // The page's illustrations: absolute URLs pass through, wiki-relative
-        // ones (like "if-if.png") resolve against the wiki's raw root.
-        const wikiBase = `https://raw.githubusercontent.com/wiki/${m[1]}/${m[2]}/`;
+        const md = calloutSection(await res.text(), anchor);
+        // Illustrations: absolute URLs pass through, wiki-relative ones
+        // (like "if-if.png") resolve against the wiki's raw root.
         const images = [...md.matchAll(/!\[[^\]]*\]\(([^)\s]+)\)/g)]
             .map((match) => match[1])
             .filter((src) => /\.(png|gif|jpe?g|svg|webp)([?#]|$)/i.test(src))
-            .map((src) => /^https?:\/\//.test(src) ? src : wikiBase + src)
-            .slice(0, 2);
+            .map((src) => /^https?:\/\//.test(src) ? src : base + src)
+            .slice(0, 3);
         const text = md
             .replace(/```[\s\S]*?```/g, ' ')
             .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
@@ -63,7 +210,7 @@ async function fetchWikiDetails(helpUrl) {
             .trim();
         if (!text && !images.length) return null;
         return {
-            text: text.length > 620 ? text.slice(0, 617) + '…' : text,
+            text: text.length > 1600 ? text.slice(0, 1597) + '…' : text,
             images,
         };
     } catch (e) {
@@ -88,11 +235,13 @@ async function showBlockCallout(block, workspace) {
             '<button class="block-callout__close" type="button" ' +
                 'aria-label="Close">✕</button>' +
         '</div>' +
-        '<p class="block-callout__text"></p>' +
-        '<p class="block-callout__more" hidden></p>' +
-        '<div class="block-callout__actions">' +
-            '<button class="coach-chip block-callout__tellmore" ' +
-                'type="button">Tell me more</button>' +
+        '<div class="block-callout__scroll">' +
+            '<p class="block-callout__text"></p>' +
+            '<p class="block-callout__more" hidden></p>' +
+            '<div class="block-callout__actions">' +
+                '<button class="coach-chip block-callout__tellmore" ' +
+                    'type="button">Tell me more</button>' +
+            '</div>' +
         '</div>';
     el.querySelector('.block-callout__title').textContent = label || type;
 
@@ -127,17 +276,40 @@ async function showBlockCallout(block, workspace) {
 
     if (typeof acbMaybeSpeakCoach === 'function') acbMaybeSpeakCoach(local);
 
-    // "Tell me more" pulls the block's own guide page - words and pictures -
-    // into the bubble. Only when the fetch fails does it fall back to a link
-    // that opens the full page, so the help URL is never wasted.
+    // "Tell me more": the curated guide section, words and pictures, in
+    // the bubble - with a link to the very same spot for the full page.
+    // Blocks with no wiki page anywhere get Blox's deeper local text.
     el.querySelector('.block-callout__tellmore')
         .addEventListener('click', async (event) => {
             const button = event.currentTarget;
+            const moreEl = el.querySelector('.block-callout__more');
+            const mapped = ACB_HELP_MAP[type];
+            if (!mapped) {
+                moreEl.textContent = ACB_DEEP_LOCAL[type] ||
+                    (typeof ACB_BLOCK_EXPLANATIONS_SIMPLE !== 'undefined' &&
+                        ACB_BLOCK_EXPLANATIONS_SIMPLE[type]) ||
+                    'That is all I have on this one for now. Try it in a ' +
+                    'tiny program and watch what changes.';
+                moreEl.hidden = false;
+                button.remove();
+                if (typeof acbMaybeSpeakCoach === 'function') {
+                    acbMaybeSpeakCoach(moreEl.textContent);
+                }
+                return;
+            }
             button.disabled = true;
             button.textContent = 'Fetching the guide…';
-            const details = await fetchWikiDetails(block.helpUrl);
-            if (!acbCallout || acbCallout.el !== el) return;  // closed meanwhile
-            const moreEl = el.querySelector('.block-callout__more');
+            const guideUrl =
+                'https://github.com/RaspberryPiFoundation/blockly/wiki/' +
+                mapped.page + (mapped.anchor ? `#${mapped.anchor}` : '');
+            const details = await fetchWikiDetails(mapped.page, mapped.anchor);
+            if (!acbCallout || acbCallout.el !== el) return;  // closed
+            const link = document.createElement('a');
+            link.href = guideUrl;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.className = 'coach-chip';
+            link.textContent = 'Open the full guide ↗';
             if (details) {
                 el.classList.add('block-callout--wide');
                 for (const src of details.images) {
@@ -149,37 +321,18 @@ async function showBlockCallout(block, workspace) {
                     moreEl.appendChild(img);
                 }
                 if (details.text) {
-                    const p = document.createElement('span');
-                    p.textContent = details.text;
-                    moreEl.appendChild(p);
+                    const span = document.createElement('span');
+                    span.textContent = details.text;
+                    moreEl.appendChild(span);
                 }
                 moreEl.hidden = false;
-                button.remove();
                 if (details.text &&
                     typeof acbMaybeSpeakCoach === 'function') {
                     acbMaybeSpeakCoach(details.text);
                 }
-            } else {
-                // Could not reach the guide: hand over the real page.
-                const url = typeof block.helpUrl === 'function' ?
-                    block.helpUrl() : block.helpUrl;
-                if (url) {
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.target = '_blank';
-                    link.rel = 'noopener';
-                    link.className = 'coach-chip';
-                    link.textContent = 'Open the full guide ↗';
-                    button.replaceWith(link);
-                } else {
-                    moreEl.textContent = (typeof
-                        ACB_BLOCK_EXPLANATIONS_SIMPLE !== 'undefined' &&
-                        ACB_BLOCK_EXPLANATIONS_SIMPLE[type]) ||
-                        'That is all I have on this one for now.';
-                    moreEl.hidden = false;
-                    button.remove();
-                }
             }
+            // The link always lands somewhere correct: the curated page.
+            button.replaceWith(link);
         });
 
     // Quiet AI upgrade of the first explanation (never blocks the bubble).
@@ -195,8 +348,8 @@ function setupCallout(workspace) {
     if (typeof Blockly === 'undefined' ||
         !Blockly.ContextMenuRegistry) return;
     const registry = Blockly.ContextMenuRegistry.registry;
-    // Replace the stock Help item (a hard redirect to a GitHub wiki) with
-    // an in-place answer from Blox.
+    // Replace the stock Help item (a hard redirect, often to Wikipedia)
+    // with an in-place answer from Blox.
     try { registry.unregister('blockHelp'); } catch (e) { /* not present */ }
     try {
         registry.register({

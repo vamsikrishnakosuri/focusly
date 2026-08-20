@@ -3036,3 +3036,10 @@ body.acb-no-motion .block-callout { animation: none; }
     margin: 0 0 8px;
     background: #fff;
 }
+
+.block-callout__scroll {
+    max-height: 60vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 2px;
+}
