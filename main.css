@@ -3589,3 +3589,25 @@ body.acb-no-motion .motivation-toast { transition: opacity 0.3s ease; }
 .goal-help-pop__cube canvas { width: 52px !important; height: 52px !important; }
 .goal-help-pop__text { flex: 1; min-width: 180px; }
 .goal-help-pop__actions { width: 100%; }
+
+
+/* --- Goal quote: one calm line under the top bar --- */
+.goal-quote {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 90;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 14.5px;
+    color: rgba(60, 76, 70, 0.75);
+    background: none;
+    pointer-events: none;
+    animation: quote-in 0.9s ease-out;
+    white-space: nowrap;
+}
+.goal-quote::before { content: '\201C'; opacity: 0.5; margin-right: 2px; }
+.goal-quote::after { content: '\201D'; opacity: 0.5; margin-left: 2px; }
+@keyframes quote-in { from { opacity: 0; } to { opacity: 1; } }
+body.acb-no-motion .goal-quote { animation: none; }
+.goal-quote[hidden] { display: none; }

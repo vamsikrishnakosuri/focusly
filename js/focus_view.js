@@ -140,63 +140,6 @@ function microControls() {
     return {done, quit: document.getElementById('microQuit')};
 }
 
-function focusGoalHelpChip() {
-    let help = document.getElementById('focusGoalHelp');
-    if (!help) {
-        help = document.createElement('button');
-        help.id = 'focusGoalHelp';
-        help.type = 'button';
-        help.className = 'coach-chip focus-goal__help';
-        help.textContent = '✨ Want help?';
-        help.title = 'Blox can split your goal into tiny micro-goals';
-        document.querySelector('.quest-bar')?.appendChild(help);
-        help.addEventListener('click', openGoalHelpPop);
-    }
-    return help;
-}
-
-function closeGoalHelpPop() {
-    bloxCubeHome();   // never let the cube vanish with the popover
-    document.getElementById('goalHelpPop')?.remove();
-}
-
-function openGoalHelpPop() {
-    closeGoalHelpPop();
-    const pop = document.createElement('div');
-    pop.id = 'goalHelpPop';
-    pop.className = 'goal-help-pop';
-    pop.setAttribute('role', 'dialog');
-    pop.setAttribute('aria-label', 'Micro-goal help');
-    pop.innerHTML =
-        '<p class="goal-help-pop__text">Blox can split this goal into ' +
-        'tiny micro-goals - a small first step beats a big wall. Use ' +
-        'the AI for this?</p>' +
-        '<div class="goal-help-pop__actions">' +
-        '<button id="goalHelpYes" class="now-card__button ' +
-        'now-card__button--primary" type="button">Yes, split it</button>' +
-        '<button id="goalHelpNo" class="coach-chip" type="button">' +
-        'No thanks</button></div>';
-    const bar = document.querySelector('.quest-bar');
-    document.body.appendChild(pop);
-    const rect = bar.getBoundingClientRect();
-    pop.style.left = `${rect.left + 40}px`;
-    pop.style.top = `${rect.bottom + 8}px`;
-    document.getElementById('goalHelpNo').addEventListener('click',
-        closeGoalHelpPop);
-    document.getElementById('goalHelpYes').addEventListener('click',
-        requestMicroGoals);
-    setTimeout(() => document.addEventListener('pointerdown',
-        goalHelpOutside, true), 0);
-}
-
-function goalHelpOutside(event) {
-    const pop = document.getElementById('goalHelpPop');
-    if (pop && !pop.contains(event.target)) {
-        closeGoalHelpPop();
-        document.removeEventListener('pointerdown', goalHelpOutside, true);
-    }
-}
-
 /**
  * A goal Blox can actually split is concrete: "print 1 to 5", "build a
  * countdown". "not sure", "idk", "help" are feelings, not goals - splitting
@@ -209,65 +152,29 @@ function goalTooVague(goal) {
         .test(text);
 }
 
-/** While Blox thinks, the 3D cube itself moves into the popover to spin. */
-function bloxCubeInto(holder) {
-    if (typeof ensureBloxSpinner !== 'function') return;
-    ensureBloxSpinner().then((s) => {
-        if (s && holder && holder.isConnected) {
-            holder.appendChild(s.renderer.domElement);
-        }
-    });
-}
-
-function bloxCubeHome() {
-    const home = document.querySelector('.coach-card__avatar');
-    const canvas = document.querySelector('#goalHelpPop canvas');
-    if (home && canvas) home.appendChild(canvas);
-}
-
-async function requestMicroGoals() {
-    const yes = document.getElementById('goalHelpYes');
+async function splitGoalViaBlox() {
     const goal = focusGoal();
-    if (!yes || !goal) return;
-    if (goalTooVague(goal)) {
-        const text = document.querySelector('.goal-help-pop__text');
-        if (text) {
-            text.textContent = `"${goal}" is a feeling, not a goal yet - ` +
-                'and I would only split it into confident nonsense. Tell ' +
-                'me what you want to build, even roughly ("print my name ' +
-                '3 times"), and I will slice it small.';
-        }
-        yes.textContent = 'Okay, I will reword it';
-        yes.onclick = () => {
-            closeGoalHelpPop();
-            document.getElementById('focusGoalChip')?.click();
-        };
+    if (!goal) {
+        coachSay('Set a goal in the top bar first (turn on Focus mode), ' +
+            'then I will slice it small for you.');
         return;
     }
-    // The learner's AI switch governs every AI feature, this one included.
+    if (goalTooVague(goal)) {
+        coachSay(`"${goal}" is a feeling, not a goal yet - I would only ` +
+            'split it into confident nonsense. Tell me what you want to ' +
+            'build, even roughly ("print my name 3 times"), and I will ' +
+            'slice it small.');
+        return;
+    }
     let aiAllowed = true;
     try { aiAllowed = localStorage.getItem('acb.aiCoach') !== 'false'; }
     catch (e) { /* fine */ }
     if (!aiAllowed) {
-        const text = document.querySelector('.goal-help-pop__text');
-        if (text) {
-            text.textContent = 'You have the AI coach switched off, so I ' +
-                'will not split anything. Turn it on in ⚙ settings if you ' +
-                'change your mind - your goal stays right where it is.';
-        }
-        yes.remove();
+        coachSay('You have my AI switched off, so I will not split ' +
+            'anything. Turn it on in the settings if you change your mind.');
         return;
     }
-    yes.disabled = true;
-    yes.textContent = 'Blox is thinking…';
-    const pop = document.getElementById('goalHelpPop');
-    if (pop && !pop.querySelector('.goal-help-pop__cube')) {
-        const cubeHolder = document.createElement('div');
-        cubeHolder.className = 'goal-help-pop__cube';
-        pop.prepend(cubeHolder);
-        bloxCubeInto(cubeHolder);
-    }
-    if (typeof bloxSpinStart === 'function') bloxSpinStart();
+    coachThinking('Slicing your goal into tiny pieces…');
     try {
         const server = (typeof ACB_COACH_SERVER !== 'undefined') ?
             ACB_COACH_SERVER : window.FOCUSLY_COACH_URL;
@@ -290,35 +197,77 @@ async function requestMicroGoals() {
             .filter(Boolean).slice(0, 5);
         if (!steps.length) throw new Error('no steps came back');
         saveMicroGoals({goal, steps, index: 0});
-        closeGoalHelpPop();
         coachSay('Here is your goal in tiny pieces - just the one in the ' +
             'bar for now. Tap ✓ when a piece is done and the next appears.');
     } catch (e) {
-        // Honest failure messages: each cause reads differently.
-        const text = document.querySelector('.goal-help-pop__text');
-        if (text) {
-            if (e.status === 429) {
-                text.textContent = 'The splitter has done a lot this hour ' +
-                    'and is taking a breather. Your goal is safe - try ' +
-                    'again in a little while, or split it yourself: what ' +
-                    'is the smallest first piece?';
-            } else if (e.status >= 400 && e.status < 600) {
-                text.textContent = 'I could not slice that one into ' +
-                    'coding steps - it may not be a block-programming ' +
-                    'goal. Phrase it as something to build ("print my ' +
-                    'name 3 times") and I will try again.';
-            } else {
-                text.textContent = 'Blox could not reach his thinking ' +
-                    'server just now. Your goal is safe; try the split ' +
-                    'again in a minute.';
-            }
+        if (e.status === 429) {
+            coachSay('I have split a lot this hour and the splitter is ' +
+                'taking a breather. Your goal is safe - try again in a ' +
+                'while, or split it yourself: what is the smallest ' +
+                'first piece?');
+        } else if (e.status >= 400 && e.status < 600) {
+            coachSay('I could not slice that one into coding steps - ' +
+                'phrase it as something to build ("print my name 3 ' +
+                'times") and I will try again.');
+        } else {
+            coachSay('I could not reach my thinking server just now. ' +
+                'Your goal is safe; try the split again in a minute.');
         }
-        if (yes) { yes.disabled = false; yes.textContent = 'Try again'; }
     } finally {
         if (typeof bloxSpinStop === 'function') bloxSpinStop();
-        bloxCubeHome();
         focusGoalRender();
     }
+}
+
+/* ---- Goal quote: a calm line matched to what the goal is about -------- */
+
+const ACB_GOAL_QUOTES = {
+    study: [
+        'One page at a time is still reading.',
+        'Understanding grows in quiet minutes like this one.',
+        'Study is just curiosity with a chair.',
+    ],
+    finish: [
+        'Done is a direction, not a leap.',
+        'The last mile is shorter than it looks.',
+        'Finishing is a series of small keeps-going.',
+    ],
+    build: [
+        'Every program is small pieces, kindly arranged.',
+        'Build the tiny version first. It teaches you the big one.',
+        'Blocks click together one at a time. So does progress.',
+    ],
+    calm: [
+        'Begin small. Momentum does the rest.',
+        'The next small step is enough.',
+        'Slow is smooth, and smooth is fast.',
+    ],
+};
+
+function goalQuoteFor(goal) {
+    const text = String(goal || '').toLowerCase();
+    const bucket =
+        /homework|study|assignment|read|exam|class|essay|paper|revis/
+            .test(text) ? 'study' :
+        /finish|complete|submit|done|due|wrap/
+            .test(text) ? 'finish' :
+        /build|make|create|code|program|print|loop|block|variable|game|list/
+            .test(text) ? 'build' : 'calm';
+    const lines = ACB_GOAL_QUOTES[bucket];
+    let hash = 0;
+    for (const ch of text) hash = (hash * 31 + ch.charCodeAt(0)) % 9973;
+    return lines[hash % lines.length];
+}
+
+function goalQuoteEl() {
+    let quote = document.getElementById('goalQuote');
+    if (!quote) {
+        quote = document.createElement('div');
+        quote.id = 'goalQuote';
+        quote.className = 'goal-quote';
+        document.body.appendChild(quote);
+    }
+    return quote;
 }
 
 function focusGoalRender() {
@@ -327,7 +276,6 @@ function focusGoalRender() {
     const stray = document.getElementById('focusGoalInput');
     if (stray && !document.getElementById('focusGoalChip')) stray.remove();
     const chip = focusGoalChip();
-    const help = focusGoalHelpChip();
     const {done, quit} = microControls();
     const inFocus = document.body.classList.contains('acb-focus-mode');
     const goal = focusGoal();
@@ -335,10 +283,22 @@ function focusGoalRender() {
     const microActive = inFocus && micro && micro.goal === goal &&
         micro.index < micro.steps.length;
     chip.hidden = !inFocus;
-    help.hidden = !inFocus || !goal || !!microActive;
     done.hidden = !microActive;
     if (quit) quit.hidden = !microActive;
-    if (!inFocus) { closeGoalHelpPop(); return; }
+    // Blox's own split chip lives in his panel: present exactly when he is.
+    const splitChip = document.getElementById('coachSplitGoal');
+    if (splitChip) splitChip.hidden = !inFocus || !goal || !!microActive;
+    // The quote: calm, matched to the goal, only while focused on one.
+    const quote = goalQuoteEl();
+    if (inFocus && goal) {
+        quote.textContent = goalQuoteFor(goal);
+        const bar = document.querySelector('.app-bar');
+        if (bar) quote.style.top = `${bar.getBoundingClientRect().bottom + 6}px`;
+        quote.hidden = false;
+    } else {
+        quote.hidden = true;
+    }
+    if (!inFocus) return;
     if (microActive) {
         chip.textContent = `🎯 ${micro.index + 1}/${micro.steps.length}: ` +
             micro.steps[micro.index];
@@ -387,6 +347,8 @@ function setupFocusView() {
     applyFocusView();
     focusGoalRender();
     // Focus mode toggling re-applies the hides and the goal chip.
+    document.getElementById('coachSplitGoal')?.addEventListener('click',
+        splitGoalViaBlox);
     document.addEventListener('acb-focus-mode-change', () => {
         applyFocusView();
         focusGoalRender();
