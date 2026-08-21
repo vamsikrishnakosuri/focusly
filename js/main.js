@@ -194,6 +194,7 @@ function initWorkspace() {
     if (typeof setupBigTimer === 'function') setupBigTimer();
     if (typeof setupTimeWheels === 'function') setupTimeWheels();
     if (typeof setupMotivation === 'function') setupMotivation();
+    if (typeof setupFrustration === 'function') setupFrustration(workspace);
     if (typeof setupFocusView === 'function') setupFocusView();
 
     // Researcher reset: wipe every acb.* key and reload, so the next
@@ -927,9 +928,9 @@ function setupBreakTimerChip() {
         paint();
     };
     workInput?.addEventListener('change',
-        () => commitTime(workInput, 'workMinutes', 60, 14400));
+        () => commitTime(workInput, 'workMinutes', 5, 14400));
     breakInput?.addEventListener('change',
-        () => commitTime(breakInput, 'breakMinutes', 30, 7200));
+        () => commitTime(breakInput, 'breakMinutes', 5, 7200));
     for (const input of [workInput, breakInput]) {
         input?.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') { event.preventDefault(); input.blur(); }

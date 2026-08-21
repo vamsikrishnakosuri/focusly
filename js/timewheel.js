@@ -138,7 +138,7 @@ function setupTimeWheels() {
     const workInput = document.getElementById('timerWorkInput');
     const breakInput = document.getElementById('timerBreakInput');
     workInput?.addEventListener('focus',
-        () => openTimeWheel(workInput, 'workMinutes', 4, 60));
+        () => openTimeWheel(workInput, 'workMinutes', 4, 5));
     breakInput?.addEventListener('focus',
-        () => openTimeWheel(breakInput, 'breakMinutes', 2, 30));
+        () => openTimeWheel(breakInput, 'breakMinutes', 2, 5));
 }
