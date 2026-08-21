@@ -3359,25 +3359,30 @@ body.acb-focus-mode.acb-fhide-io .io-card { display: none !important; }
     background: rgba(26, 147, 111, 0.12);
     color: var(--acb-green, #1a936f);
     font-weight: 700;
-    font-size: 13.5px;
+    font-size: 15px;
     border-radius: 999px;
-    padding: 6px 14px;
+    padding: 10px 20px;
     cursor: pointer;
-    max-width: 340px;
+    min-width: 240px;
+    max-width: 460px;
+    text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 .focus-goal.is-empty { opacity: 0.65; font-weight: 600; }
 body.acb-focus-mode.acb-fhide-quest .focus-goal,
-body.acb-focus-mode.acb-fhide-quest .focus-goal__input { visibility: visible; }
+body.acb-focus-mode.acb-fhide-quest .focus-goal__input,
+body.acb-focus-mode.acb-fhide-quest .focus-goal__help,
+body.acb-focus-mode.acb-fhide-quest .micro-done,
+body.acb-focus-mode.acb-fhide-quest .micro-quit { visibility: visible; }
 
 .focus-goal__input {
     border: 2px solid var(--acb-green, #1a936f);
     border-radius: 999px;
-    padding: 5px 12px;
-    font-size: 13.5px;
-    width: 260px;
+    padding: 9px 18px;
+    font-size: 15px;
+    width: 340px;
 }
 
 .focus-view__mark { margin-right: 6px; }
