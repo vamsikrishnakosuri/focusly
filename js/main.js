@@ -1,7 +1,15 @@
 // The app window (Focus Mode's clean window, or the gear's "Open in app
 // window") is a continuation of the same session, not a return visit:
 // restore the workspace silently instead of showing the Welcome back card.
-window.ACB_SILENT_RESUME = (window.name === 'acb-app-window');
+// A reload triggered by the focus hand-off returning is also a
+// continuation, not a return visit - the learner never left.
+let acbSilentReload = false;
+try {
+    acbSilentReload = sessionStorage.getItem('acb.silentReload') === '1';
+    sessionStorage.removeItem('acb.silentReload');
+} catch (e) { /* fine */ }
+window.ACB_SILENT_RESUME =
+    (window.name === 'acb-app-window') || acbSilentReload;
 
 // list block program xml
 const PROGRAMS = [
@@ -685,6 +693,9 @@ function setupFocusModeToggle() {
             const watcher = setInterval(() => {
                 if (win.closed) {
                     clearInterval(watcher);
+                    try {
+                        sessionStorage.setItem('acb.silentReload', '1');
+                    } catch (e) { /* fine */ }
                     window.location.reload();
                 }
             }, 800);
