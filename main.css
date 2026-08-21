@@ -3614,3 +3614,6 @@ body.acb-focus-mode .focus-goal,
 body.acb-focus-mode .focus-goal__input,
 body.acb-focus-mode .micro-done,
 body.acb-focus-mode .micro-quit { visibility: visible; }
+
+
+.break-scene__extend { display: inline-flex; gap: 8px; margin-top: 4px; }

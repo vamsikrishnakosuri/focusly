@@ -92,7 +92,7 @@ const acbAmbient = {
 
     buffer(kind, ctx) {
         // Longer loops for the scenes so the repetition is not noticeable.
-        const seconds = {ocean: 16, rain: 8, wind: 12, fire: 10}[kind] || 4;
+        const seconds = {ocean: 16, rain: 8, wind: 12, fire: 10, forest: 14}[kind] || 4;
         const rate = ctx.sampleRate;
         const buffer = ctx.createBuffer(1, rate * seconds, rate);
         const data = buffer.getChannelData(0);
@@ -131,6 +131,12 @@ const acbAmbient = {
                 // A low ember rumble - crackles are added below.
                 last = (last + 0.02 * white) / 1.02;
                 data[i] = last * 1.1;
+            } else if (kind === 'forest') {
+                // A soft leafy hush - birdsong is added below.
+                const a = 0.05 + 0.03 * (1 + Math.sin(2 * Math.PI * 0.07 * t));
+                lp += a * (white - lp);
+                data[i] = lp * 0.8 *
+                    (0.7 + 0.3 * Math.sin(2 * Math.PI * 0.05 * t + 2.1));
             }
         }
         if (kind === 'rain') {
@@ -155,6 +161,25 @@ const acbAmbient = {
                 for (let j = 0; j < 800; j++) {
                     data[at + j] += (Math.random() * 2 - 1) *
                         amp * Math.exp(-j / decay);
+                }
+            }
+        }
+        if (kind === 'forest') {
+            // Birdsong: sparse two-note chirps, gentle downward sweeps.
+            const chirps = Math.floor(seconds * 1.2);
+            for (let c = 0; c < chirps; c++) {
+                const at = Math.floor(Math.random() * (data.length - 8000));
+                const f0 = 2400 + Math.random() * 1400;
+                const notes = 1 + Math.floor(Math.random() * 2);
+                for (let n = 0; n < notes; n++) {
+                    const offset = at + n * 2600;
+                    const amp = 0.05 + Math.random() * 0.06;
+                    for (let j = 0; j < 2200; j++) {
+                        const sweep = f0 * (1 - 0.18 * (j / 2200));
+                        data[offset + j] +=
+                            Math.sin(2 * Math.PI * sweep * j / rate) *
+                            amp * Math.sin(Math.PI * j / 2200);
+                    }
                 }
             }
         }

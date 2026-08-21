@@ -14,8 +14,10 @@
 let acbBreakScene = null;   // {el, tick}
 
 function breakSoundPref() {
-    try { return localStorage.getItem('acb.breakSound') || 'off'; }
-    catch (e) { return 'off'; }
+    try {
+        const stored = localStorage.getItem('acb.breakSound') || 'off';
+        return stored === 'mix' ? 'forest' : stored;
+    } catch (e) { return 'off'; }
 }
 
 function setBreakSound(kind) {
@@ -26,68 +28,8 @@ function setBreakSound(kind) {
         b.classList.toggle('is-picked', b.dataset.breakSound === kind));
     const vol = (typeof acbProfile === 'function') ?
         acbProfile().ambientVol : 0.25;
-    if (kind === 'mix') {
-        if (typeof acbAmbient !== 'undefined') {
-            acbAmbient.apply({ambient: 'off'});
-        }
-        breakMixerStart(vol);
-    } else {
-        breakMixerStop();
-        if (typeof acbAmbient !== 'undefined') {
-            acbAmbient.apply({ambient: kind, ambientVol: vol});
-        }
-    }
-}
-
-/* --------------- the mixer: blend your own break sound ----------------- */
-
-const ACB_MIX_PARTS = ['rain', 'ocean', 'wind', 'fire'];
-const ACB_MIX_LABELS = {rain: '🌧 Rain', ocean: '🌊 Waves',
-    wind: '🍃 Wind', fire: '🔥 Crackle'};
-let acbBreakMixer = null;   // {ctx, parts: {kind: gainNode}}
-
-function breakMixLevels() {
-    try {
-        return {rain: 0.6, ocean: 0, wind: 0.25, fire: 0.2,
-            ...JSON.parse(localStorage.getItem('acb.breakMix') || '{}')};
-    } catch (e) {
-        return {rain: 0.6, ocean: 0, wind: 0.25, fire: 0.2};
-    }
-}
-
-function breakMixerStart(masterVol) {
-    breakMixerStop();
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const levels = breakMixLevels();
-        const parts = {};
-        for (const kind of ACB_MIX_PARTS) {
-            const source = ctx.createBufferSource();
-            source.buffer = acbAmbient.buffer(kind, ctx);
-            source.loop = true;
-            const gain = ctx.createGain();
-            gain.gain.value = (levels[kind] || 0) * masterVol * 2;
-            source.connect(gain).connect(ctx.destination);
-            source.start();
-            parts[kind] = gain;
-        }
-        acbBreakMixer = {ctx, parts, masterVol};
-    } catch (e) { /* comfort only */ }
-}
-
-function breakMixerStop() {
-    try { acbBreakMixer?.ctx.close(); } catch (e) { /* fine */ }
-    acbBreakMixer = null;
-}
-
-function breakMixerSet(kind, level) {
-    const levels = breakMixLevels();
-    levels[kind] = level;
-    try { localStorage.setItem('acb.breakMix', JSON.stringify(levels)); }
-    catch (e) { /* fine */ }
-    if (acbBreakMixer?.parts[kind]) {
-        acbBreakMixer.parts[kind].gain.value =
-            level * acbBreakMixer.masterVol * 2;
+    if (typeof acbAmbient !== 'undefined') {
+        acbAmbient.apply({ambient: kind, ambientVol: vol});
     }
 }
 
@@ -96,7 +38,6 @@ function breakSceneClose(endBreakToo) {
     clearInterval(acbBreakScene.tick);
     acbBreakScene.el.remove();
     acbBreakScene = null;
-    breakMixerStop();
     document.body.classList.remove('acb-break-open');
     document.removeEventListener('keydown', breakSceneEsc, true);
     // Break sound off; the learner's everyday ambience comes back.
@@ -143,17 +84,8 @@ function breakSceneShow() {
                     'type="button">🟤 Deep noise</button>' +
                 '<button class="coach-chip" data-break-sound="fire" ' +
                     'type="button">🔥 Campfire</button>' +
-                '<button class="coach-chip" data-break-sound="mix" ' +
-                    'type="button">🎛 My mix</button>' +
-            '</div>' +
-            '<div class="break-scene__mixer" id="breakMixer" hidden>' +
-                ACB_MIX_PARTS.map((kind) =>
-                    `<label class="break-scene__mix-row">` +
-                    `<span>${ACB_MIX_LABELS[kind]}</span>` +
-                    `<input type="range" min="0" max="100" ` +
-                    `data-mix="${kind}" ` +
-                    `aria-label="${ACB_MIX_LABELS[kind]} amount"></label>`
-                ).join('') +
+                '<button class="coach-chip" data-break-sound="forest" ' +
+                    'type="button">🌲 Forest</button>' +
             '</div>' +
             '<button class="break-scene__back" id="breakSceneBack" ' +
                 'type="button">I\'m back - end break</button>' +
@@ -165,23 +97,14 @@ function breakSceneShow() {
     el.querySelector('#breakSceneBack').addEventListener('click',
         () => breakSceneClose(true));
     el.querySelectorAll('[data-break-sound]').forEach((button) => {
-        button.addEventListener('click', () => {
-            setBreakSound(button.dataset.breakSound);
-            const mixer = el.querySelector('#breakMixer');
-            if (mixer) mixer.hidden = button.dataset.breakSound !== 'mix';
-        });
-    });
-    const startLevels = breakMixLevels();
-    el.querySelectorAll('[data-mix]').forEach((slider) => {
-        slider.value = String(Math.round(
-            (startLevels[slider.dataset.mix] || 0) * 100));
-        slider.addEventListener('input', () =>
-            breakMixerSet(slider.dataset.mix, Number(slider.value) / 100));
+        button.addEventListener('click',
+            () => setBreakSound(button.dataset.breakSound));
     });
     document.addEventListener('keydown', breakSceneEsc, true);
 
     const count = el.querySelector('#breakSceneCount');
     const update = () => {
+        if (acbBreakScene && acbBreakScene.extending) return;
         const timer = (typeof getBreakTimer === 'function') &&
             getBreakTimer();
         if (!timer || timer.getStateName() !== 'break') {
@@ -205,12 +128,53 @@ function breakSceneShow() {
     setBreakSound(pref);
 }
 
+/**
+ * The break ran out: instead of snapping back to work, the scene offers
+ * a gentle choice - back to it, or a little longer. Extending re-enters
+ * the plugin's own break state, so every display stays truthful.
+ */
+function breakExtendOffer() {
+    if (!acbBreakScene) return;
+    acbBreakScene.extending = true;
+    const count = document.getElementById('breakSceneCount');
+    const line = document.querySelector('.break-scene__line');
+    if (count) count.textContent = 'Break finished';
+    if (line) {
+        line.innerHTML = '';
+        const wrap = document.createElement('span');
+        wrap.className = 'break-scene__extend';
+        for (const minutes of [2, 5]) {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'coach-chip';
+            chip.textContent = `+${minutes} more minutes`;
+            chip.addEventListener('click', () => {
+                const timer = getBreakTimer();
+                timer.core.state = 'break';
+                timer.core.breakEndsAt =
+                    timer.core.now() + minutes * 60000;
+                acbBreakScene.extending = false;
+                line.textContent = 'Step away, stretch, look far away. ' +
+                    'Your blocks are exactly as you left them.';
+            });
+            wrap.appendChild(chip);
+        }
+        line.appendChild(wrap);
+    }
+    // No pressure either way: after 25 quiet seconds, back to work.
+    setTimeout(() => {
+        if (acbBreakScene && acbBreakScene.extending) {
+            breakSceneClose(false);
+        }
+    }, 25000);
+}
+
 function setupBreakScene() {
     document.addEventListener('acb-break-timer', (event) => {
         const action = event.detail && event.detail.action;
         if (action === 'break-started') breakSceneShow();
-        else if (action === 'break-ended' || action === 'break-over' ||
-                 action === 'disabled') {
+        else if (action === 'break-over') breakExtendOffer();
+        else if (action === 'break-ended' || action === 'disabled') {
             breakSceneClose(false);
         }
     });
