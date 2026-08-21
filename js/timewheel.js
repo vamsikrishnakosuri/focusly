@@ -20,8 +20,25 @@ function wheelColumn(max, initial, caption) {
     const scroller = document.createElement('div');
     scroller.className = 'time-wheel__col';
     scroller.dataset.value = String(initial);
+    scroller.dataset.max = String(max);
     scroller.setAttribute('role', 'listbox');
     scroller.setAttribute('aria-label', caption);
+    // A mouse wheel steps EXACTLY one detent per notch. Fast wheels send
+    // big deltas that would jump 8 -> 10; we take over and go one by one.
+    scroller.addEventListener('wheel', (event) => {
+        event.preventDefault();
+        const dir = Math.sign(event.deltaY);
+        if (!dir) return;
+        const current = ('_target' in scroller) ?
+            scroller._target : wheelValue(scroller);
+        scroller._target = Math.max(0, Math.min(max, current + dir));
+        scroller.scrollTo({top: scroller._target * ACB_WHEEL_ITEM_H,
+            behavior: 'smooth'});
+    }, {passive: false});
+    // Finger drags and scrollbar moves stay native; when they settle,
+    // the target follows so the next notch continues from reality.
+    scroller.addEventListener('pointerdown',
+        () => { delete scroller._target; });
     const pad1 = document.createElement('div');
     pad1.className = 'time-wheel__spacer';
     scroller.appendChild(pad1);
