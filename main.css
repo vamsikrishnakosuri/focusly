@@ -3617,3 +3617,25 @@ body.acb-focus-mode .micro-quit { visibility: visible; }
 
 
 .break-scene__extend { display: inline-flex; gap: 8px; margin-top: 4px; }
+
+/* Online sound search inside the break card: one quiet row. */
+.break-scene__online { margin: 0 0 14px; }
+.break-scene__online input {
+    width: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13.5px;
+    margin-bottom: 8px;
+}
+.break-scene__results {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    font-size: 12.5px;
+    color: var(--acb-muted, #667);
+}
+.break-scene__results .is-picked {
+    outline: 2px solid var(--acb-green, #1a936f);
+}

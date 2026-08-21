@@ -26,6 +26,7 @@ function setBreakSound(kind) {
     if (!acbBreakScene) return;
     acbBreakScene.el.querySelectorAll('[data-break-sound]').forEach((b) =>
         b.classList.toggle('is-picked', b.dataset.breakSound === kind));
+    breakOnlineStop();   // a preset chip takes over from any online sound
     const vol = (typeof acbProfile === 'function') ?
         acbProfile().ambientVol : 0.25;
     if (typeof acbAmbient !== 'undefined') {
@@ -40,6 +41,7 @@ function breakSceneClose(endBreakToo) {
     acbBreakScene = null;
     document.body.classList.remove('acb-break-open');
     document.removeEventListener('keydown', breakSceneEsc, true);
+    breakOnlineStop();
     // Break sound off; the learner's everyday ambience comes back.
     if (typeof acbAmbient !== 'undefined' && typeof acbProfile === 'function') {
         acbAmbient.apply(acbProfile());
@@ -86,6 +88,16 @@ function breakSceneShow() {
                     'type="button">🔥 Campfire</button>' +
                 '<button class="coach-chip" data-break-sound="forest" ' +
                     'type="button">🌲 Forest</button>' +
+                '<button class="coach-chip" id="breakMoreSounds" ' +
+                    'type="button" title="Blox searches free CC0 sounds ' +
+                    'online">✨ More sounds</button>' +
+            '</div>' +
+            '<div class="break-scene__online" id="breakOnline" hidden>' +
+                '<input id="breakSoundQuery" type="text" maxlength="40" ' +
+                    'placeholder="thunderstorm, stream, night birds…" ' +
+                    'aria-label="Describe a sound to find">' +
+                '<div id="breakSoundResults" ' +
+                    'class="break-scene__results"></div>' +
             '</div>' +
             '<button class="break-scene__back" id="breakSceneBack" ' +
                 'type="button">I\'m back - end break</button>' +
@@ -100,6 +112,7 @@ function breakSceneShow() {
         button.addEventListener('click',
             () => setBreakSound(button.dataset.breakSound));
     });
+    breakOnlineSetup(el);
     document.addEventListener('keydown', breakSceneEsc, true);
 
     const count = el.querySelector('#breakSceneCount');
@@ -126,6 +139,87 @@ function breakSceneShow() {
     // Remembered break sound starts on its own; picking is one tap.
     const pref = breakSoundPref();
     setBreakSound(pref);
+}
+
+/* ---- Online sounds: CC0 recordings found live through the server ------ */
+
+let acbBreakOnlineAudio = null;
+
+function breakOnlineStop() {
+    try { acbBreakOnlineAudio?.pause(); } catch (e) { /* fine */ }
+    acbBreakOnlineAudio = null;
+}
+
+function breakOnlinePlay(url) {
+    breakOnlineStop();
+    if (typeof acbAmbient !== 'undefined') {
+        acbAmbient.apply({ambient: 'off'});
+    }
+    const vol = (typeof acbProfile === 'function') ?
+        acbProfile().ambientVol : 0.25;
+    acbBreakOnlineAudio = new Audio(url);
+    acbBreakOnlineAudio.loop = true;
+    acbBreakOnlineAudio.volume = Math.min(1, vol * 2.2);
+    acbBreakOnlineAudio.play().catch(() => { /* needs a gesture; had one */ });
+}
+
+function breakOnlineSetup(el) {
+    const button = el.querySelector('#breakMoreSounds');
+    const panel = el.querySelector('#breakOnline');
+    const input = el.querySelector('#breakSoundQuery');
+    const results = el.querySelector('#breakSoundResults');
+    if (!button || !panel) return;
+    button.addEventListener('click', () => {
+        panel.hidden = !panel.hidden;
+        if (!panel.hidden) input.focus();
+    });
+    const search = async () => {
+        const query = input.value.trim();
+        if (!query) return;
+        results.textContent = 'Blox is listening around…';
+        try {
+            const server = (typeof ACB_COACH_SERVER !== 'undefined') ?
+                ACB_COACH_SERVER : window.FOCUSLY_COACH_URL;
+            const response = await fetch(
+                `${server}/sounds?query=${encodeURIComponent(query)}`);
+            if (response.status === 501) {
+                results.textContent = 'Online sounds are not switched on ' +
+                    'for this server yet. The built-in scenes still work.';
+                return;
+            }
+            if (!response.ok) throw new Error(String(response.status));
+            const {sounds} = await response.json();
+            results.innerHTML = '';
+            if (!sounds.length) {
+                results.textContent = 'Nothing calm came back for that - ' +
+                    'try different words, like "soft rain window".';
+                return;
+            }
+            for (const sound of sounds.slice(0, 4)) {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'coach-chip';
+                chip.textContent = `▷ ${sound.name} · ${sound.seconds}s`;
+                chip.title = `CC0, by ${sound.by} on Freesound`;
+                chip.addEventListener('click', () => {
+                    results.querySelectorAll('.coach-chip').forEach((c) =>
+                        c.classList.remove('is-picked'));
+                    chip.classList.add('is-picked');
+                    el.querySelectorAll('[data-break-sound]').forEach((c) =>
+                        c.classList.remove('is-picked'));
+                    breakOnlinePlay(sound.url);
+                });
+                results.appendChild(chip);
+            }
+        } catch (e) {
+            results.textContent = 'Could not reach the sound library just ' +
+                'now. The built-in scenes still work.';
+        }
+    };
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') { event.preventDefault(); search(); }
+        event.stopPropagation();   // Esc in the field must not end the break
+    });
 }
 
 /**
