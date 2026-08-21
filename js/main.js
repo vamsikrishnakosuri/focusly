@@ -1842,6 +1842,16 @@ function setupQuests(workspace) {
             armNudge();
             return;
         }
+        // A break is rest, not idleness - and the same goes for replay,
+        // the walkthrough tour, and a live stepper session. The hand
+        // stays away and tries again later.
+        if (document.body.classList.contains('acb-break-open') ||
+            (typeof acbReplay !== 'undefined' && acbReplay) ||
+            (typeof acbWalk !== 'undefined' && acbWalk) ||
+            (typeof acbStepSession !== 'undefined' && acbStepSession)) {
+            armNudge();
+            return;
+        }
         clearNudge();
         const target = nudgeTarget();
         if (!target) return;

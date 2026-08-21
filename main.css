@@ -3491,3 +3491,6 @@ body.acb-focus-mode.acb-fhide-quest .focus-goal { visibility: visible; }
     border-radius: 8px;
     pointer-events: none;
 }
+
+/* The hidden attribute must always win over the flex display. */
+.big-timer[hidden] { display: none !important; }
