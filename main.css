@@ -3640,3 +3640,22 @@ body.acb-focus-mode .micro-quit { visibility: visible; }
 .break-scene__results .is-picked {
     outline: 2px solid var(--acb-green, #1a936f);
 }
+
+
+/* --- My bests: records vs a previous you --- */
+.bests-card { max-width: 420px; }
+.bests-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 9px 4px;
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.1);
+    font-size: 14px;
+}
+.bests-row span { flex: 1; }
+.bests-row strong { color: var(--acb-green, #1a936f); font-size: 16px; }
+.bests-row em {
+    font-style: normal;
+    font-size: 12px;
+    color: var(--acb-muted, #778);
+}
