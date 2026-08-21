@@ -66,23 +66,38 @@ function frustrationOnPointerDown(event) {
     }
 }
 
+const ACB_THRASH = {lastX: null, dir: 0, swing: 0, turns: []};
+
+/**
+ * Thrashed cursor, done right: adjacent samples are slow exactly at the
+ * turnaround, so velocity products never fire on real hardware. Instead we
+ * watch TURNING POINTS - each time the horizontal direction flips after a
+ * swing of at least 40px. Five wide flips within 1.5 seconds is shaking.
+ */
 function frustrationOnPointerMove(event) {
     const now = performance.now();
-    const moves = ACB_FRUSTRATION.moves;
-    const last = moves[moves.length - 1];
-    const vx = last ? (event.clientX - last.x) / Math.max(1, now - last.t) : 0;
-    moves.push({t: now, x: event.clientX, vx});
-    while (moves.length && now - moves[0].t > 1600) moves.shift();
-    // Thrashed cursor: 5+ fast horizontal direction reversals in ~1.6s.
-    let reversals = 0;
-    for (let i = 2; i < moves.length; i++) {
-        const a = moves[i - 1].vx, b = moves[i].vx;
-        if (a * b < 0 && Math.abs(a) > 0.7 && Math.abs(b) > 0.7) reversals++;
+    const state = ACB_THRASH;
+    if (state.lastX === null) { state.lastX = event.clientX; return; }
+    const dx = event.clientX - state.lastX;
+    state.lastX = event.clientX;
+    if (Math.abs(dx) < 2) return;             // micro-jitter is not motion
+    const dir = Math.sign(dx);
+    if (state.dir !== 0 && dir !== state.dir) {
+        // A turning point: count it only if the swing was a real sweep.
+        if (state.swing >= 40) {
+            state.turns.push(now);
+            while (state.turns.length && now - state.turns[0] > 1500) {
+                state.turns.shift();
+            }
+            if (state.turns.length >= 5) {
+                state.turns.length = 0;
+                frustrationAdd(25);
+            }
+        }
+        state.swing = 0;
     }
-    if (reversals >= 5) {
-        moves.length = 0;
-        frustrationAdd(20);
-    }
+    state.dir = dir;
+    state.swing += Math.abs(dx);
 }
 
 function frustrationOnRun() {
