@@ -26,7 +26,9 @@ const ACB_FRUSTRATION = {
     lastErrorText: '',
 };
 
-const ACB_FRUSTRATION_THRESHOLD = 70;
+// 65, not 70: two 35-point bursts must trigger, and the first burst
+// decays a floating-point hair before the second lands.
+const ACB_FRUSTRATION_THRESHOLD = 65;
 const ACB_FRUSTRATION_COOLDOWN_MS = 8 * 60 * 1000;
 
 function frustrationCareOn() {
@@ -91,7 +93,7 @@ function frustrationOnPointerMove(event) {
             }
             if (state.turns.length >= 5) {
                 state.turns.length = 0;
-                frustrationAdd(25);
+                frustrationAdd(35);   // two sustained bursts reach the line
             }
         }
         state.swing = 0;

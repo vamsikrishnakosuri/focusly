@@ -3338,6 +3338,7 @@ body.acb-no-motion .coach-card.has-companion .coach-card__avatar::after {
 
 /* Goal chip: lives in the quest bar, only during focus mode. */
 .focus-goal {
+    flex-shrink: 0;
     border: 0;
     background: rgba(26, 147, 111, 0.12);
     color: var(--acb-green, #1a936f);
@@ -3347,7 +3348,7 @@ body.acb-no-motion .coach-card.has-companion .coach-card__avatar::after {
     padding: 10px 20px;
     cursor: pointer;
     min-width: 240px;
-    max-width: 460px;
+    max-width: min(52vw, 760px);
     text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -3576,7 +3577,7 @@ body.acb-no-motion .motivation-toast { transition: opacity 0.3s ease; }
     margin-left: auto;
     margin-right: auto;
     padding: 0 14px;
-    max-width: 34vw;
+    max-width: 22vw;   /* the goal outranks the quote for bar space */
     overflow: hidden;
     text-overflow: ellipsis;
     font-family: Georgia, 'Times New Roman', serif;

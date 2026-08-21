@@ -314,9 +314,12 @@ function focusGoalRender() {
     if (microActive) {
         chip.textContent = `🎯 ${micro.index + 1}/${micro.steps.length}: ` +
             micro.steps[micro.index];
+        chip.title = micro.steps[micro.index];
         chip.classList.remove('is-empty');
     } else {
         chip.textContent = goal ? `🎯 ${goal}` : '🎯 Set a goal…';
+        chip.title = goal ||
+            'Your goal for this focus session - click to change';
         chip.classList.toggle('is-empty', !goal);
     }
 }
