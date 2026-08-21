@@ -126,20 +126,19 @@
                         <i class="fas fa-pause" aria-hidden="true"></i>
                         <span id="timerPauseButtonLabel">Pause timer</span>
                     </button>
-                    <p class="settings-heading">Big countdown on canvas</p>
+                    <p class="settings-heading">Countdown display</p>
                     <div class="timer-dropdown__bt-row">
-                        <button class="coach-chip" data-bt="show:on" type="button">Show</button>
-                        <button class="coach-chip" data-bt="show:off" type="button">Hide</button>
-                        <button class="coach-chip" data-bt="size:s" type="button">Small</button>
-                        <button class="coach-chip" data-bt="size:m" type="button">Medium</button>
-                        <button class="coach-chip" data-bt="size:l" type="button">Large</button>
-                    </div>
-                    <div class="timer-dropdown__bt-row">
+                        <button class="coach-chip" data-bt="pos:chip" type="button" title="Just the small chip, no big display">Chip only</button>
                         <button class="coach-chip" data-bt="pos:header" type="button">Top bar</button>
-                        <button class="coach-chip" data-bt="pos:top-left" type="button">Top left</button>
-                        <button class="coach-chip" data-bt="pos:top-center" type="button">Top center</button>
-                        <button class="coach-chip" data-bt="pos:top-right" type="button">Top right</button>
-                        <button class="coach-chip" data-bt="pos:bottom-right" type="button">Bottom right</button>
+                        <button class="coach-chip" data-bt="pos:left" type="button" title="In the toolbox column">Left</button>
+                        <button class="coach-chip" data-bt="pos:right" type="button" title="Under Blox's panel">Right</button>
+                        <button class="coach-chip" data-bt="pos:bottom" type="button" title="Bottom edge of the workspace">Bottom</button>
+                    </div>
+                    <label class="timer-dropdown__row"><span>Size</span>
+                        <input id="btSizeSlider" type="range" min="0" max="100" value="50"
+                               aria-label="Countdown size">
+                    </label>
+                    <div class="timer-dropdown__bt-row">
                         <button class="bt-swatch" data-bt="color:green" style="background:#1a936f" type="button" aria-label="Green"></button>
                         <button class="bt-swatch" data-bt="color:purple" style="background:#765BA6" type="button" aria-label="Purple"></button>
                         <button class="bt-swatch" data-bt="color:blue" style="background:#5B85A6" type="button" aria-label="Blue"></button>
@@ -241,8 +240,11 @@
                         </select>
                     </label>
                     <div class="settings-divider" role="separator"></div>
-                    <p class="settings-heading">In Focus Mode, hide:</p>
-                    <div id="focusViewList"></div>
+                    <button id="focusViewToggle" class="settings-item" type="button"
+                            aria-expanded="false">
+                        🎯 Focus Mode view…
+                    </button>
+                    <div id="focusViewList" hidden></div>
                     <p class="settings-heading" id="layoutHeading">Panel layout</p>
                     <button id="layoutSide" class="settings-item" type="button"
                             role="menuitemradio" aria-checked="true">

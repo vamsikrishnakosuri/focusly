@@ -3394,3 +3394,40 @@ body.acb-focus-mode.acb-fhide-quest .focus-goal { visibility: visible; }
 .big-timer--header.big-timer--s .big-timer__time { font-size: 16px; }
 .big-timer--header.big-timer--m .big-timer__time { font-size: 23px; }
 .big-timer--header.big-timer--l .big-timer__time { font-size: 32px; }
+
+
+/* Countdown display homes (see bigtimer.js: mounted inside its home). */
+.big-timer--left {
+    position: fixed;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    pointer-events: none;
+    line-height: 1.15;
+}
+.big-timer--right {
+    position: static;
+    order: 99;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+    pointer-events: none;
+}
+.big-timer--bottom {
+    position: fixed;
+    z-index: 150;   /* under the NOW card (200) */
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    pointer-events: none;
+}
+.big-timer--header .big-timer__time,
+.big-timer--left .big-timer__time,
+.big-timer--right .big-timer__time,
+.big-timer--bottom .big-timer__time { font-size: inherit; font-weight: 800; }
+
+#focusViewList .settings-item { padding-left: 26px; font-size: 13px; }

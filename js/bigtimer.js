@@ -1,17 +1,24 @@
 /**
- * @fileoverview The big canvas timer. The chip's little countdown is easy
- * to miss; when the timer is on, a large readable countdown can sit right
- * on the workspace - visible time is one of the best-evidenced ADHD
- * supports (time blindness is the barrier; making time concrete is the
- * accommodation). The learner controls it fully: on/off, size, corner,
- * and color, from the timer dropdown.
+ * @fileoverview The countdown display. Visible time is the core ADHD
+ * accommodation (time blindness), but it must never cost workspace calm:
+ * every placement lives in the app's own chrome, never floating over the
+ * blocks. The learner picks where it lives and how big it is:
+ *
+ *   - Chip only: no big display; the little chip beside the toggle is it.
+ *   - Top bar (default): the app bar's empty middle.
+ *   - Left: centered in the toolbox column's empty lower half.
+ *   - Right: under Blox's panel in the right column.
+ *   - Bottom: hugging the workspace's bottom-left edge.
+ *
+ * Size is a slider, clamped per placement - the top bar cannot overflow
+ * into the workspace no matter how far the slider goes; the left column
+ * caps at its own width; and so on. Leaking is structurally impossible.
  */
 
 const ACB_BIGTIMER_DEFAULTS = {
-    show: 'on',            // on | off
-    size: 'm',             // s | m | l
-    pos: 'header',         // header | top-left | top-center | top-right | bottom-right
-    color: 'green',        // green | purple | blue | ink
+    pos: 'header',       // chip | header | left | right | bottom
+    scale: 0.5,          // 0..1 via the slider
+    color: 'green',      // green | purple | blue | ink
 };
 
 const ACB_BIGTIMER_COLORS = {
@@ -19,17 +26,23 @@ const ACB_BIGTIMER_COLORS = {
 };
 
 function bigTimerPrefs() {
+    let stored = {};
     try {
-        return {...ACB_BIGTIMER_DEFAULTS,
-            ...JSON.parse(localStorage.getItem('acb.bigTimer') || '{}')};
-    } catch (e) { return {...ACB_BIGTIMER_DEFAULTS}; }
+        stored = JSON.parse(localStorage.getItem('acb.bigTimer') || '{}');
+    } catch (e) { /* fine */ }
+    // Migrate the older show/size scheme.
+    if (stored.show === 'off') stored.pos = 'chip';
+    if (stored.size && stored.scale === undefined) {
+        stored.scale = {s: 0.25, m: 0.5, l: 0.8}[stored.size] ?? 0.5;
+    }
+    return {...ACB_BIGTIMER_DEFAULTS, ...stored};
 }
 
 function saveBigTimerPrefs(patch) {
     const next = {...bigTimerPrefs(), ...patch};
     try { localStorage.setItem('acb.bigTimer', JSON.stringify(next)); }
     catch (e) { /* fine */ }
-    bigTimerRender();   // reflect immediately
+    bigTimerRender();
     return next;
 }
 
@@ -45,13 +58,35 @@ function bigTimerEl() {
     return el;
 }
 
+/** Font size for a placement, clamped so the home can never overflow. */
+function bigTimerFont(pos, scale) {
+    if (pos === 'header') {
+        // The app bar is ~56px tall: 28px max keeps it inside, always.
+        return 13 + scale * 15;
+    }
+    if (pos === 'left') {
+        const toolbox = document.querySelector('.blocklyToolboxDiv');
+        const width = toolbox ? toolbox.getBoundingClientRect().width : 130;
+        return Math.min(12 + scale * 22, Math.max(12, width / 5));
+    }
+    if (pos === 'right') {
+        const panel = document.querySelector('.execution-panel');
+        const width = panel ? panel.getBoundingClientRect().width : 320;
+        return Math.min(14 + scale * 44, Math.max(14, width / 6));
+    }
+    // bottom: the widest home, still capped against tiny windows.
+    const canvas = document.getElementById('blocklyDiv');
+    const width = canvas ? canvas.getBoundingClientRect().width : 700;
+    return Math.min(14 + scale * 58, Math.max(14, width / 9));
+}
+
 function bigTimerRender() {
     const el = bigTimerEl();
     const prefs = bigTimerPrefs();
     const timer = (typeof getBreakTimer === 'function') && getBreakTimer();
     const state = timer && timer.getStateName();
-    const active = prefs.show === 'on' && timer &&
-        state !== 'off' && !document.body.classList.contains('acb-break-open');
+    const active = prefs.pos !== 'chip' && timer && state !== 'off' &&
+        !document.body.classList.contains('acb-break-open');
     if (!active) { el.hidden = true; return; }
 
     const paused = typeof timer.isPaused === 'function' && timer.isPaused();
@@ -69,46 +104,45 @@ function bigTimerRender() {
     el.innerHTML = `<span class="big-timer__time">${time}</span>` +
         `<span class="big-timer__label">${label}</span>`;
 
-    el.className = `big-timer big-timer--${prefs.size} ` +
-        `big-timer--${prefs.pos}`;
+    el.className = `big-timer big-timer--${prefs.pos}`;
     el.style.color = ACB_BIGTIMER_COLORS[prefs.color] ||
         ACB_BIGTIMER_COLORS.green;
+    el.style.fontSize = `${Math.round(bigTimerFont(prefs.pos, prefs.scale))}px`;
 
+    // Each placement mounts INSIDE its home element, so overflow is
+    // impossible by construction rather than by arithmetic alone.
     if (prefs.pos === 'header') {
-        // The calm home: the app bar's empty middle, off the workspace.
         const bar = document.querySelector('.app-bar');
         const status = document.querySelector('.app-bar__status');
         if (bar && el.parentElement !== bar) {
             bar.insertBefore(el, status || null);
         }
+        el.removeAttribute('style-anchor');
         el.style.top = el.style.bottom = el.style.left = el.style.right = '';
-        el.style.transform = '';
-        el.hidden = false;
-        return;
-    }
-    if (el.parentElement !== document.body) document.body.appendChild(el);
-
-    // Anchor to the workspace's own rectangle, whatever the layout.
-    const canvas = document.getElementById('blocklyDiv');
-    if (canvas) {
-        const rect = canvas.getBoundingClientRect();
-        const margin = 14;
-        el.style.top = prefs.pos.startsWith('top') ?
-            `${rect.top + margin}px` : '';
-        el.style.bottom = prefs.pos.startsWith('bottom') ?
-            `${window.innerHeight - rect.bottom + margin}px` : '';
-        if (prefs.pos.endsWith('left')) {
-            el.style.left = `${rect.left + 70 + margin}px`;
-            el.style.right = '';
-            el.style.transform = '';
-        } else if (prefs.pos.endsWith('center')) {
-            el.style.left = `${rect.left + rect.width / 2}px`;
-            el.style.right = '';
-            el.style.transform = 'translateX(-50%)';
-        } else {
-            el.style.right = `${window.innerWidth - rect.right + margin}px`;
-            el.style.left = '';
-            el.style.transform = '';
+    } else if (prefs.pos === 'right') {
+        const panel = document.querySelector('.execution-panel');
+        if (panel && el.parentElement !== panel) panel.appendChild(el);
+        el.style.top = el.style.bottom = el.style.left = el.style.right = '';
+    } else if (prefs.pos === 'left') {
+        if (el.parentElement !== document.body) document.body.appendChild(el);
+        const toolbox = document.querySelector('.blocklyToolboxDiv');
+        if (toolbox) {
+            const rect = toolbox.getBoundingClientRect();
+            el.style.left = `${rect.left}px`;
+            el.style.top = `${rect.top + rect.height * 0.55}px`;
+            el.style.right = el.style.bottom = '';
+            el.style.width = `${rect.width}px`;
+        }
+    } else {  // bottom: the workspace's bottom-left edge, under the blocks
+        if (el.parentElement !== document.body) document.body.appendChild(el);
+        const canvas = document.getElementById('blocklyDiv');
+        if (canvas) {
+            const rect = canvas.getBoundingClientRect();
+            el.style.left = `${rect.left + 76}px`;
+            el.style.top = '';
+            el.style.bottom =
+                `${Math.max(8, window.innerHeight - rect.bottom + 10)}px`;
+            el.style.right = el.style.width = '';
         }
     }
     el.hidden = false;
@@ -116,7 +150,6 @@ function bigTimerRender() {
 
 function setupBigTimer() {
     setInterval(bigTimerRender, 500);
-    // Controls live in the timer dropdown; chips carry data-bt="key:value".
     document.querySelectorAll('[data-bt]').forEach((button) => {
         button.addEventListener('click', () => {
             const [key, value] = button.dataset.bt.split(':');
@@ -126,8 +159,11 @@ function setupBigTimer() {
                     sib === button));
         });
     });
-    // Reflect stored choices on the chips at load.
+    const slider = document.getElementById('btSizeSlider');
+    slider?.addEventListener('input', () =>
+        saveBigTimerPrefs({scale: Number(slider.value) / 100}));
     const prefs = bigTimerPrefs();
+    if (slider) slider.value = String(Math.round(prefs.scale * 100));
     for (const [key, value] of Object.entries(prefs)) {
         document.querySelector(`[data-bt="${key}:${value}"]`)
             ?.classList.add('is-picked');

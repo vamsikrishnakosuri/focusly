@@ -92,8 +92,13 @@ function focusGoalRender() {
 /* -------------------------------- setup -------------------------------- */
 
 function setupFocusView() {
-    // Checklist in the settings menu, under its own heading.
+    // Collapsed by default: one row in settings opens the checklist.
+    const toggle = document.getElementById('focusViewToggle');
     const list = document.getElementById('focusViewList');
+    toggle?.addEventListener('click', () => {
+        list.hidden = !list.hidden;
+        toggle.setAttribute('aria-expanded', String(!list.hidden));
+    });
     if (list) {
         const prefs = focusHidePrefs();
         for (const option of ACB_FOCUS_HIDE_OPTIONS) {
