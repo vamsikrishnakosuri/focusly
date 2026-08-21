@@ -3593,10 +3593,14 @@ body.acb-no-motion .motivation-toast { transition: opacity 0.3s ease; }
 
 /* --- Goal quote: one calm line under the top bar --- */
 .goal-quote {
-    position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 90;
+    position: static;
+    align-self: center;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 14px;
+    max-width: 34vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-family: Georgia, 'Times New Roman', serif;
     font-style: italic;
     font-size: 14.5px;

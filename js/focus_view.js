@@ -288,12 +288,19 @@ function focusGoalRender() {
     // Blox's own split chip lives in his panel: present exactly when he is.
     const splitChip = document.getElementById('coachSplitGoal');
     if (splitChip) splitChip.hidden = !inFocus || !goal || !!microActive;
-    // The quote: calm, matched to the goal, only while focused on one.
+    // The quote: calm, matched to the goal, living INSIDE the app bar
+    // (between the goal and the countdown) so it can never straddle the
+    // workspace at any window size.
     const quote = goalQuoteEl();
     if (inFocus && goal) {
         quote.textContent = goalQuoteFor(goal);
         const bar = document.querySelector('.app-bar');
-        if (bar) quote.style.top = `${bar.getBoundingClientRect().bottom + 6}px`;
+        if (bar && quote.parentElement !== bar) {
+            const anchor = document.getElementById('bigTimer');
+            bar.insertBefore(quote,
+                (anchor && anchor.parentElement === bar) ?
+                    anchor : document.querySelector('.app-bar__status'));
+        }
         quote.hidden = false;
     } else {
         quote.hidden = true;
