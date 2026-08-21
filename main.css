@@ -3494,3 +3494,26 @@ body.acb-focus-mode.acb-fhide-quest .focus-goal { visibility: visible; }
 
 /* The hidden attribute must always win over the flex display. */
 .big-timer[hidden] { display: none !important; }
+
+/* The custom color wheel, dressed as a fifth swatch. */
+.bt-swatch--custom {
+    appearance: none;
+    -webkit-appearance: none;
+    background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 0, 0, 0.15);
+    padding: 0;
+    cursor: pointer;
+    overflow: hidden;
+}
+.bt-swatch--custom::-webkit-color-swatch-wrapper { padding: 0; }
+.bt-swatch--custom::-webkit-color-swatch {
+    border: none;
+    border-radius: 50%;
+    opacity: 0;   /* the rainbow ring stays; the picked color shows on the timer */
+}
+.bt-swatch--custom.is-picked {
+    outline: 2px solid var(--acb-green, #1a936f);
+}

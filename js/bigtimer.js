@@ -109,8 +109,9 @@ function bigTimerRender() {
         `<span class="big-timer__label">${label}</span>`;
 
     el.className = `big-timer big-timer--${prefs.pos}`;
-    el.style.color = ACB_BIGTIMER_COLORS[prefs.color] ||
-        ACB_BIGTIMER_COLORS.green;
+    el.style.color = prefs.color === 'custom' ?
+        (prefs.customColor || ACB_BIGTIMER_COLORS.green) :
+        (ACB_BIGTIMER_COLORS[prefs.color] || ACB_BIGTIMER_COLORS.green);
     el.style.fontSize = `${Math.round(bigTimerFont(prefs.pos, prefs.scale))}px`;
 
     // Each placement mounts INSIDE its home element, so overflow is
@@ -168,15 +169,32 @@ function setupBigTimer() {
             button.parentElement.querySelectorAll(`[data-bt^="${key}:"]`)
                 .forEach((sib) => sib.classList.toggle('is-picked',
                     sib === button));
+            if (key === 'color') {
+                document.getElementById('btCustomColor')
+                    ?.classList.remove('is-picked');
+            }
         });
     });
     const slider = document.getElementById('btSizeSlider');
     slider?.addEventListener('input', () =>
         saveBigTimerPrefs({scale: Number(slider.value) / 100}));
+    // The fifth swatch is the whole color wheel: any color they like.
+    const custom = document.getElementById('btCustomColor');
+    custom?.addEventListener('input', () => {
+        saveBigTimerPrefs({color: 'custom', customColor: custom.value});
+        document.querySelectorAll('[data-bt^="color:"]')
+            .forEach((sib) => sib.classList.remove('is-picked'));
+        custom.classList.add('is-picked');
+    });
     const prefs = bigTimerPrefs();
     if (slider) slider.value = String(Math.round(prefs.scale * 100));
+    if (custom && prefs.customColor) custom.value = prefs.customColor;
+    if (custom && prefs.color === 'custom') custom.classList.add('is-picked');
     for (const [key, value] of Object.entries(prefs)) {
-        document.querySelector(`[data-bt="${key}:${value}"]`)
-            ?.classList.add('is-picked');
+        const chip = document.querySelector(`[data-bt="${key}:${value}"]`);
+        if (chip) {
+            chip.classList.add('is-picked');
+            if (key === 'color') custom?.classList.remove('is-picked');
+        }
     }
 }
