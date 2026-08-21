@@ -8,27 +8,32 @@
  * survives a distraction.
  */
 
-const ACB_FOCUS_HIDE_OPTIONS = [
-    {key: 'toolbox', label: 'Block drawer (toolbox)'},
-    {key: 'quest', label: 'Quest bar'},
-    {key: 'chips', label: 'XP and streak chips'},
-    {key: 'timer', label: 'Timer chip'},
-    {key: 'coach', label: 'Blox panel'},
-    {key: 'io', label: 'Output and Code card'},
+const ACB_FOCUS_SHOW_OPTIONS = [
+    {key: 'logo', label: 'Show the Focusly logo'},
+    {key: 'quest', label: 'Show the quest bar'},
+    {key: 'chips', label: 'Show XP and streak chips'},
+    {key: 'timer', label: 'Show the timer'},
+    {key: 'coach', label: 'Show the Blox panel'},
 ];
 
-function focusHidePrefs() {
+function focusShowPrefs() {
     try {
-        return JSON.parse(localStorage.getItem('acb.focusHide') || '{}');
+        return JSON.parse(localStorage.getItem('acb.focusShow') || '{}');
     } catch (e) { return {}; }
 }
 
 function applyFocusView() {
-    const prefs = focusHidePrefs();
-    for (const option of ACB_FOCUS_HIDE_OPTIONS) {
-        document.body.classList.toggle('acb-fhide-' + option.key,
+    const prefs = focusShowPrefs();
+    for (const option of ACB_FOCUS_SHOW_OPTIONS) {
+        document.body.classList.toggle('acb-fshow-' + option.key,
             !!prefs[option.key]);
     }
+    // Showing Blox in focus also drives the coach-in-focus mechanism the
+    // rest of the harness already understands.
+    document.body.classList.toggle('acb-coach-in-focus', !!prefs.coach);
+    try {
+        localStorage.setItem('acb.coachInFocus', String(!!prefs.coach));
+    } catch (e) { /* fine */ }
     const workspace = (typeof Blockly !== 'undefined') &&
         Blockly.getMainWorkspace();
     if (workspace && typeof Blockly.svgResize === 'function') {
@@ -327,19 +332,19 @@ function setupFocusView() {
         toggle.setAttribute('aria-expanded', String(!list.hidden));
     });
     if (list) {
-        const prefs = focusHidePrefs();
-        for (const option of ACB_FOCUS_HIDE_OPTIONS) {
+        const prefs = focusShowPrefs();
+        for (const option of ACB_FOCUS_SHOW_OPTIONS) {
             const item = document.createElement('button');
             item.type = 'button';
             item.className = 'settings-item';
             item.setAttribute('role', 'menuitemcheckbox');
             item.setAttribute('aria-checked', String(!!prefs[option.key]));
-            item.textContent = 'Hide ' + option.label.toLowerCase();
+            item.textContent = option.label;
             item.addEventListener('click', () => {
-                const now = focusHidePrefs();
+                const now = focusShowPrefs();
                 now[option.key] = !now[option.key];
                 try {
-                    localStorage.setItem('acb.focusHide',
+                    localStorage.setItem('acb.focusShow',
                         JSON.stringify(now));
                 } catch (e) { /* fine */ }
                 item.setAttribute('aria-checked', String(!!now[option.key]));
@@ -348,6 +353,13 @@ function setupFocusView() {
             list.appendChild(item);
         }
     }
+    // The ⋯ Other settings group folds the rarely-touched items away.
+    const otherToggle = document.getElementById('otherSettingsToggle');
+    const otherList = document.getElementById('otherSettingsList');
+    otherToggle?.addEventListener('click', () => {
+        otherList.hidden = !otherList.hidden;
+        otherToggle.setAttribute('aria-expanded', String(!otherList.hidden));
+    });
     applyFocusView();
     focusGoalRender();
     // Focus mode toggling re-applies the hides and the goal chip.

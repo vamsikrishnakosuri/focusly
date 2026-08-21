@@ -1860,12 +1860,6 @@ select, option, select:focus, option:hover, button {
 /* The learner keeps exactly what they asked to keep: workspace, output, */
 /* code. Everything game-ish or chatty goes away.                        */
 
-.acb-focus-mode #xpChip,
-.acb-focus-mode #streakChip,
-.acb-focus-mode #coachCard,
-.acb-focus-mode #questSteps {
-    display: none;
-}
 
 /* ================================================================== */
 /* Quests, NOW card, coach buttons, splitter, toast, layout fixes      */
@@ -2281,9 +2275,6 @@ select, option, select:focus, option:hover, button {
 }
 
 /* Opt-in: keep the coach visible during Focus Mode. */
-.acb-focus-mode.acb-coach-in-focus #coachCard {
-    display: flex;
-}
 
 /* Glow for HTML controls the nudge points at (the Run button). */
 @keyframes acb-el-glow-pulse {
@@ -3344,14 +3335,6 @@ body.acb-no-motion .coach-card.has-companion .coach-card__avatar::after {
 .break-scene__mix-row span { min-width: 86px; }
 .break-scene__mix-row input { flex: 1; }
 
-/* --- Focus view hides (only bite while focus mode is on) --- */
-body.acb-focus-mode.acb-fhide-toolbox .blocklyToolboxDiv { display: none !important; }
-body.acb-focus-mode.acb-fhide-quest .quest-bar { visibility: hidden; }
-body.acb-focus-mode.acb-fhide-chips #xpChip,
-body.acb-focus-mode.acb-fhide-chips #streakChip { display: none !important; }
-body.acb-focus-mode.acb-fhide-timer #breakTimerChip { display: none !important; }
-body.acb-focus-mode.acb-fhide-coach #coachCard { display: none !important; }
-body.acb-focus-mode.acb-fhide-io .io-card { display: none !important; }
 
 /* Goal chip: lives in the quest bar, only during focus mode. */
 .focus-goal {
@@ -3371,11 +3354,6 @@ body.acb-focus-mode.acb-fhide-io .io-card { display: none !important; }
     white-space: nowrap;
 }
 .focus-goal.is-empty { opacity: 0.65; font-weight: 600; }
-body.acb-focus-mode.acb-fhide-quest .focus-goal,
-body.acb-focus-mode.acb-fhide-quest .focus-goal__input,
-body.acb-focus-mode.acb-fhide-quest .focus-goal__help,
-body.acb-focus-mode.acb-fhide-quest .micro-done,
-body.acb-focus-mode.acb-fhide-quest .micro-quit { visibility: visible; }
 
 .focus-goal__input {
     border: 2px solid var(--acb-green, #1a936f);
@@ -3615,3 +3593,24 @@ body.acb-no-motion .motivation-toast { transition: opacity 0.3s ease; }
 @keyframes quote-in { from { opacity: 0; } to { opacity: 1; } }
 body.acb-no-motion .goal-quote { animation: none; }
 .goal-quote[hidden] { display: none; }
+
+
+/* ------------------------------------------------------------------ */
+/* Focus mode visibility: calm by default. Only the toolbox, the      */
+/* canvas, and the run/output column remain; everything else is       */
+/* opt-in through ◎ Focus Mode settings (acb-fshow-* body classes).   */
+/* ------------------------------------------------------------------ */
+body.acb-focus-mode:not(.acb-fshow-logo) .app-bar__brand { display: none; }
+body.acb-focus-mode:not(.acb-fshow-quest) .quest-bar { visibility: hidden; }
+body.acb-focus-mode:not(.acb-fshow-chips) #xpChip,
+body.acb-focus-mode:not(.acb-fshow-chips) #streakChip { display: none !important; }
+body.acb-focus-mode:not(.acb-fshow-timer) #breakTimerChip,
+body.acb-focus-mode:not(.acb-fshow-timer) #bigTimer { display: none !important; }
+body.acb-focus-mode:not(.acb-fshow-coach) #coachCard { display: none !important; }
+
+/* The goal, its editor, and the micro-goal controls are focus tools:  */
+/* always visible in focus mode, whatever the quest bar is doing.      */
+body.acb-focus-mode .focus-goal,
+body.acb-focus-mode .focus-goal__input,
+body.acb-focus-mode .micro-done,
+body.acb-focus-mode .micro-quit { visibility: visible; }
