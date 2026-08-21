@@ -334,8 +334,7 @@ function setupFocusView() {
             item.className = 'settings-item';
             item.setAttribute('role', 'menuitemcheckbox');
             item.setAttribute('aria-checked', String(!!prefs[option.key]));
-            item.innerHTML = `<span class="focus-view__mark">` +
-                `${prefs[option.key] ? '☑' : '☐'}</span> ${option.label}`;
+            item.textContent = 'Hide ' + option.label.toLowerCase();
             item.addEventListener('click', () => {
                 const now = focusHidePrefs();
                 now[option.key] = !now[option.key];
@@ -344,8 +343,6 @@ function setupFocusView() {
                         JSON.stringify(now));
                 } catch (e) { /* fine */ }
                 item.setAttribute('aria-checked', String(!!now[option.key]));
-                item.querySelector('.focus-view__mark').textContent =
-                    now[option.key] ? '☑' : '☐';
                 applyFocusView();
             });
             list.appendChild(item);

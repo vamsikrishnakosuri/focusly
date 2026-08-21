@@ -197,16 +197,16 @@
                     </button>
                     <button id="studyReset" class="settings-item" type="button" role="menuitem"
                             title="Clears all progress, XP, badges, and preferences on this computer">
-                        🧹 Reset everything (new person)
+                        ↺ Reset everything (new person)
                     </button>
                     <button id="collabOpen" class="settings-item" type="button" role="menuitem">
-                        👥 Build together (live)
+                        ⧉ Build together (live)
                     </button>
                     <button id="shareOpen" class="settings-item" type="button" role="menuitem">
-                        🔗 Copy share link
+                        ⎘ Copy share link
                     </button>
                     <button id="replayOpen" class="settings-item" type="button" role="menuitem">
-                        🎞 Replay my building
+                        ⟲ Replay my building
                     </button>
                     <button id="showInstructions" class="settings-item" type="button" role="menuitem"
                             title="Show task instructions" aria-label="Show task instructions">
@@ -218,12 +218,6 @@
                             aria-label="Open in app window">
                         <i class="fas fa-window-restore" aria-hidden="true"></i>
                         <span>Open in app window</span>
-                    </button>
-                    <button id="coachInFocusToggle" class="settings-item" type="button"
-                            role="menuitemcheckbox" aria-checked="false"
-                            title="Keep the coach panel visible while Focus Mode is on">
-                        <i class="fas fa-feather" aria-hidden="true"></i>
-                        <span>Coach in Focus Mode</span>
                     </button>
                     <button id="aiCoachToggle" class="settings-item" type="button"
                             role="menuitemcheckbox" aria-checked="true"
@@ -249,9 +243,16 @@
                     <div class="settings-divider" role="separator"></div>
                     <button id="focusViewToggle" class="settings-item" type="button"
                             aria-expanded="false">
-                        🎯 Focus Mode view…
+                        ◎ Focus Mode settings
                     </button>
-                    <div id="focusViewList" hidden></div>
+                    <div id="focusViewList" hidden>
+                    <button id="coachInFocusToggle" class="settings-item" type="button"
+                            role="menuitemcheckbox" aria-checked="false"
+                            title="Keep the coach panel visible while Focus Mode is on">
+                        <i class="fas fa-feather" aria-hidden="true"></i>
+                        <span>Coach in Focus Mode</span>
+                    </button>
+                    </div>
                     <p class="settings-heading" id="layoutHeading">Panel layout</p>
                     <button id="layoutSide" class="settings-item" type="button"
                             role="menuitemradio" aria-checked="true">
