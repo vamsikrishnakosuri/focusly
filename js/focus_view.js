@@ -156,6 +156,7 @@ function focusGoalHelpChip() {
 }
 
 function closeGoalHelpPop() {
+    bloxCubeHome();   // never let the cube vanish with the popover
     document.getElementById('goalHelpPop')?.remove();
 }
 
@@ -196,12 +197,62 @@ function goalHelpOutside(event) {
     }
 }
 
+/**
+ * A goal Blox can actually split is concrete: "print 1 to 5", "build a
+ * countdown". "not sure", "idk", "help" are feelings, not goals - splitting
+ * them would produce confident nonsense, so Blox asks for substance first.
+ */
+function goalTooVague(goal) {
+    const text = String(goal || '').trim().toLowerCase();
+    if (text.replace(/[^a-z]/g, '').length < 6) return true;
+    return /^(not sure|notsure|no idea|idk|i don'?t know|dont know|help|help me|nothing|anything|something|whatever|test|asdf+|hmm+|\?+)\b/
+        .test(text);
+}
+
+/** While Blox thinks, the 3D cube itself moves into the popover to spin. */
+function bloxCubeInto(holder) {
+    if (typeof ensureBloxSpinner !== 'function') return;
+    ensureBloxSpinner().then((s) => {
+        if (s && holder && holder.isConnected) {
+            holder.appendChild(s.renderer.domElement);
+        }
+    });
+}
+
+function bloxCubeHome() {
+    const home = document.querySelector('.coach-card__avatar');
+    const canvas = document.querySelector('#goalHelpPop canvas');
+    if (home && canvas) home.appendChild(canvas);
+}
+
 async function requestMicroGoals() {
     const yes = document.getElementById('goalHelpYes');
     const goal = focusGoal();
     if (!yes || !goal) return;
+    if (goalTooVague(goal)) {
+        const text = document.querySelector('.goal-help-pop__text');
+        if (text) {
+            text.textContent = `"${goal}" is a feeling, not a goal yet - ` +
+                'and I would only split it into confident nonsense. Tell ' +
+                'me what you want to build, even roughly ("print my name ' +
+                '3 times"), and I will slice it small.';
+        }
+        yes.textContent = 'Okay, I will reword it';
+        yes.onclick = () => {
+            closeGoalHelpPop();
+            document.getElementById('focusGoalChip')?.click();
+        };
+        return;
+    }
     yes.disabled = true;
     yes.textContent = 'Blox is thinking…';
+    const pop = document.getElementById('goalHelpPop');
+    if (pop && !pop.querySelector('.goal-help-pop__cube')) {
+        const cubeHolder = document.createElement('div');
+        cubeHolder.className = 'goal-help-pop__cube';
+        pop.prepend(cubeHolder);
+        bloxCubeInto(cubeHolder);
+    }
     if (typeof bloxSpinStart === 'function') bloxSpinStart();
     try {
         const server = (typeof ACB_COACH_SERVER !== 'undefined') ?
@@ -234,6 +285,7 @@ async function requestMicroGoals() {
         if (yes) { yes.disabled = false; yes.textContent = 'Try again'; }
     } finally {
         if (typeof bloxSpinStop === 'function') bloxSpinStop();
+        bloxCubeHome();
         focusGoalRender();
     }
 }

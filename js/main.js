@@ -185,6 +185,7 @@ function initWorkspace() {
     if (typeof setupCollab === 'function') setupCollab(workspace);
     if (typeof setupBigTimer === 'function') setupBigTimer();
     if (typeof setupTimeWheels === 'function') setupTimeWheels();
+    if (typeof setupMotivation === 'function') setupMotivation();
     if (typeof setupFocusView === 'function') setupFocusView();
 
     // Researcher reset: wipe every acb.* key and reload, so the next

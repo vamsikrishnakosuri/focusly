@@ -50,6 +50,7 @@
     <script src="./js/collab.js"></script>
     <script src="./js/bigtimer.js"></script>
     <script src="./js/timewheel.js"></script>
+    <script src="./js/motivation.js"></script>
     <script src="./js/focus_view.js"></script>
 </head>
 <body onload="initWorkspace()">
@@ -562,6 +563,16 @@
                     <div class="pref-row">
                         <button class="coach-chip" data-pref="companion:off" type="button">Companion off</button>
                         <button class="coach-chip" data-pref="companion:on" type="button">Blox works alongside me</button>
+                    </div>
+                </section>
+                <section class="map-island"><h3>Encouragement <button class="pref-info" type="button" aria-label="What does this do?" aria-expanded="false">&#9432;</button></h3>
+                    <p class="pref-info__text" hidden>Small calm messages at
+                    moments that earn them: fixing a broken run, steady focus,
+                    coming back from a break. At most one every few minutes,
+                    and they praise effort, never streaks.</p>
+                    <div class="pref-row">
+                        <button class="coach-chip" data-pref="cheer:on" type="button">Encouragement on</button>
+                        <button class="coach-chip" data-pref="cheer:off" type="button">Encouragement off</button>
                     </div>
                 </section>
                 <section class="map-island"><h3>Blox's tone <button class="pref-info" type="button" aria-label="What does this do?" aria-expanded="false">&#9432;</button></h3><p class="pref-info__text" hidden>How Blox talks to you. Warm adds encouragement; brief strips it to just the facts, if cheer reads as noise.</p>

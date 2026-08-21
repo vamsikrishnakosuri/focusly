@@ -27,6 +27,7 @@ const ACB_PROFILE_DEFAULTS = {
     tone: 'warm',          // warm | brief
     ambient: 'off',        // off | white | pink | brown
     readAloud: 'off',      // off | on   (coach messages + step reader)
+    cheer: 'on',           // on | off   (motivation messenger)
     companion: 'off',      // off | on   (body-double presence)
     ambientVol: 0.25,
 };
