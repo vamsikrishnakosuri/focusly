@@ -6,3 +6,12 @@
  * A learner's own localStorage 'acb.coachServer' still overrides both.
  */
 window.FOCUSLY_COACH_URL = 'https://blockly-flow.onrender.com';
+
+
+// Render's free tier sleeps after ~15 idle minutes and takes up to a minute
+// to wake. Ping it at load so Blox is warm by the first real question.
+try {
+    if (window.FOCUSLY_COACH_URL) {
+        fetch(window.FOCUSLY_COACH_URL + '/health').catch(function () {});
+    }
+} catch (e) { /* warm-up is best-effort */ }

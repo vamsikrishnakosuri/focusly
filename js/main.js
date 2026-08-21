@@ -185,6 +185,32 @@ function initWorkspace() {
     if (typeof setupCollab === 'function') setupCollab(workspace);
     if (typeof setupBigTimer === 'function') setupBigTimer();
     if (typeof setupFocusView === 'function') setupFocusView();
+
+    // Researcher reset: wipe every acb.* key and reload, so the next
+    // participant starts from the true first-visit experience. Two taps,
+    // like Finish quest, so a stray click never erases a session.
+    const studyReset = document.getElementById('studyReset');
+    let studyResetArmed = null;
+    studyReset?.addEventListener('click', () => {
+        if (studyResetArmed) {
+            clearTimeout(studyResetArmed);
+            try {
+                const doomed = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('acb')) doomed.push(key);
+                }
+                doomed.forEach((key) => localStorage.removeItem(key));
+            } catch (e) { /* fine */ }
+            location.reload();
+            return;
+        }
+        studyReset.textContent = 'Sure? Tap again to erase everything';
+        studyResetArmed = setTimeout(() => {
+            studyResetArmed = null;
+            studyReset.textContent = '\u{1F9F9} Reset everything (new person)';
+        }, 4000);
+    });
     // Blox's 3D self appears from the start (a beat after load, so it
     // never competes with startup), not just on the first question.
     setTimeout(() => { if (typeof ensureBloxSpinner === 'function') ensureBloxSpinner(); }, 1200);
