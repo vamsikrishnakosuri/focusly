@@ -3528,3 +3528,5 @@ body.acb-focus-mode.acb-fhide-quest .focus-goal__input { visibility: visible; }
 .bt-swatch--custom.is-picked {
     outline: 2px solid var(--acb-green, #1a936f);
 }
+
+.bt-recent { display: inline-flex; gap: 5px; }

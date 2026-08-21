@@ -108,15 +108,31 @@ function bigTimerRender() {
     el.innerHTML = `<span class="big-timer__time">${time}</span>` +
         `<span class="big-timer__label">${label}</span>`;
 
-    el.className = `big-timer big-timer--${prefs.pos}`;
     el.style.color = prefs.color === 'custom' ?
         (prefs.customColor || ACB_BIGTIMER_COLORS.green) :
         (ACB_BIGTIMER_COLORS[prefs.color] || ACB_BIGTIMER_COLORS.green);
-    el.style.fontSize = `${Math.round(bigTimerFont(prefs.pos, prefs.scale))}px`;
+
+    // A home can vanish (focus mode can hide the toolbox, the coach
+    // panel, or the whole right column): fall back to the top bar for
+    // as long as the chosen home is gone, without touching the pref.
+    let pos = prefs.pos;
+    if (pos === 'left') {
+        const toolbox = document.querySelector('.blocklyToolboxDiv');
+        if (!toolbox || toolbox.getBoundingClientRect().width < 10) {
+            pos = 'header';
+        }
+    } else if (pos === 'right') {
+        const card = document.getElementById('coachCard');
+        if (!card || card.getBoundingClientRect().width < 10) {
+            pos = 'header';
+        }
+    }
+    el.className = `big-timer big-timer--${pos}`;
+    el.style.fontSize = `${Math.round(bigTimerFont(pos, prefs.scale))}px`;
 
     // Each placement mounts INSIDE its home element, so overflow is
     // impossible by construction rather than by arithmetic alone.
-    if (prefs.pos === 'header') {
+    if (pos === 'header') {
         const bar = document.querySelector('.app-bar');
         const status = document.querySelector('.app-bar__status');
         if (bar && el.parentElement !== bar) {
@@ -124,7 +140,7 @@ function bigTimerRender() {
         }
         el.removeAttribute('style-anchor');
         el.style.top = el.style.bottom = el.style.left = el.style.right = '';
-    } else if (prefs.pos === 'right') {
+    } else if (pos === 'right') {
         // Directly under Blox's chat card, not at the column's far bottom.
         const card = document.getElementById('coachCard');
         if (card && el.previousElementSibling !== card) {
@@ -132,7 +148,7 @@ function bigTimerRender() {
         }
         el.style.top = el.style.bottom = el.style.left = el.style.right = '';
         el.style.width = '';
-    } else if (prefs.pos === 'left') {
+    } else if (pos === 'left') {
         if (el.parentElement !== document.body) document.body.appendChild(el);
         const toolbox = document.querySelector('.blocklyToolboxDiv');
         if (toolbox) {
@@ -179,20 +195,61 @@ function setupBigTimer() {
     slider?.addEventListener('input', () =>
         saveBigTimerPrefs({scale: Number(slider.value) / 100}));
     // The fifth swatch is the whole color wheel: any color they like.
-    // Once picked, the swatch wears that color (with a +) so it always
-    // shows "your color, tap to change".
+    // Once picked, the swatch wears that color (with a +), and the last
+    // two committed picks live on as their own little swatches - a new
+    // pick replaces the oldest, so favorites stay one tap away.
     const custom = document.getElementById('btCustomColor');
     const customWrap = document.getElementById('btCustomWrap');
+    const recentHolder = document.getElementById('btRecentColors');
     const paintCustomSwatch = (color) => {
         if (customWrap && color) customWrap.style.background = color;
     };
-    custom?.addEventListener('input', () => {
-        saveBigTimerPrefs({color: 'custom', customColor: custom.value});
-        paintCustomSwatch(custom.value);
+    const markCustomPicked = () => {
         document.querySelectorAll('[data-bt^="color:"]')
             .forEach((sib) => sib.classList.remove('is-picked'));
         customWrap?.classList.add('is-picked');
+    };
+    const renderRecent = () => {
+        if (!recentHolder) return;
+        const p = bigTimerPrefs();
+        recentHolder.innerHTML = '';
+        for (const color of (p.customRecent || [])) {
+            const dot = document.createElement('button');
+            dot.type = 'button';
+            dot.className = 'bt-swatch';
+            dot.style.background = color;
+            dot.setAttribute('aria-label', `Recent color ${color}`);
+            dot.title = color;
+            if (p.color === 'custom' && p.customColor === color) {
+                dot.classList.add('is-picked');
+            }
+            dot.addEventListener('click', () => {
+                saveBigTimerPrefs({color: 'custom', customColor: color});
+                if (custom) custom.value = color;
+                paintCustomSwatch(color);
+                markCustomPicked();
+                renderRecent();
+            });
+            recentHolder.appendChild(dot);
+        }
+    };
+    custom?.addEventListener('input', () => {
+        // Live preview while the wheel is open; history waits for commit.
+        saveBigTimerPrefs({color: 'custom', customColor: custom.value});
+        paintCustomSwatch(custom.value);
+        markCustomPicked();
     });
+    custom?.addEventListener('change', () => {
+        // The pick is final: remember it, oldest of the two falls away.
+        const p = bigTimerPrefs();
+        const recent = (p.customRecent || [])
+            .filter((c) => c !== custom.value);
+        recent.push(custom.value);
+        while (recent.length > 2) recent.shift();
+        saveBigTimerPrefs({customRecent: recent});
+        renderRecent();
+    });
+    renderRecent();
     const prefs = bigTimerPrefs();
     if (slider) slider.value = String(Math.round(prefs.scale * 100));
     if (custom && prefs.customColor) {
