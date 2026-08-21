@@ -144,7 +144,10 @@
                         <button class="bt-swatch" data-bt="color:purple" style="background:#765BA6" type="button" aria-label="Purple"></button>
                         <button class="bt-swatch" data-bt="color:blue" style="background:#5B85A6" type="button" aria-label="Blue"></button>
                         <button class="bt-swatch" data-bt="color:ink" style="background:#333a3f" type="button" aria-label="Ink"></button>
-                        <input type="color" id="btCustomColor" class="bt-swatch bt-swatch--custom" value="#e91e63" aria-label="Pick any color" title="Pick any color">
+                        <label class="bt-swatch bt-swatch--custom" id="btCustomWrap" title="Pick any color">
+                            <input type="color" id="btCustomColor" value="#e91e63" aria-label="Pick any color">
+                            <span class="bt-swatch__plus" aria-hidden="true">+</span>
+                        </label>
                     </div>
                     <button id="timerToggleButton" class="settings-item" type="button">
                         <i class="fas fa-power-off" aria-hidden="true"></i>

@@ -79,6 +79,10 @@ function focusGoalChip() {
 }
 
 function focusGoalRender() {
+    // Never leave a stale editor behind (e.g. focus mode toggled off
+    // while the goal input was open).
+    const stray = document.getElementById('focusGoalInput');
+    if (stray && !document.getElementById('focusGoalChip')) stray.remove();
     const chip = focusGoalChip();
     const inFocus = document.body.classList.contains('acb-focus-mode');
     chip.hidden = !inFocus;

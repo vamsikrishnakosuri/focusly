@@ -170,7 +170,7 @@ function setupBigTimer() {
                 .forEach((sib) => sib.classList.toggle('is-picked',
                     sib === button));
             if (key === 'color') {
-                document.getElementById('btCustomColor')
+                document.getElementById('btCustomWrap')
                     ?.classList.remove('is-picked');
             }
         });
@@ -179,22 +179,32 @@ function setupBigTimer() {
     slider?.addEventListener('input', () =>
         saveBigTimerPrefs({scale: Number(slider.value) / 100}));
     // The fifth swatch is the whole color wheel: any color they like.
+    // Once picked, the swatch wears that color (with a +) so it always
+    // shows "your color, tap to change".
     const custom = document.getElementById('btCustomColor');
+    const customWrap = document.getElementById('btCustomWrap');
+    const paintCustomSwatch = (color) => {
+        if (customWrap && color) customWrap.style.background = color;
+    };
     custom?.addEventListener('input', () => {
         saveBigTimerPrefs({color: 'custom', customColor: custom.value});
+        paintCustomSwatch(custom.value);
         document.querySelectorAll('[data-bt^="color:"]')
             .forEach((sib) => sib.classList.remove('is-picked'));
-        custom.classList.add('is-picked');
+        customWrap?.classList.add('is-picked');
     });
     const prefs = bigTimerPrefs();
     if (slider) slider.value = String(Math.round(prefs.scale * 100));
-    if (custom && prefs.customColor) custom.value = prefs.customColor;
-    if (custom && prefs.color === 'custom') custom.classList.add('is-picked');
+    if (custom && prefs.customColor) {
+        custom.value = prefs.customColor;
+        paintCustomSwatch(prefs.customColor);
+    }
+    if (prefs.color === 'custom') customWrap?.classList.add('is-picked');
     for (const [key, value] of Object.entries(prefs)) {
         const chip = document.querySelector(`[data-bt="${key}:${value}"]`);
         if (chip) {
             chip.classList.add('is-picked');
-            if (key === 'color') custom?.classList.remove('is-picked');
+            if (key === 'color') customWrap?.classList.remove('is-picked');
         }
     }
 }

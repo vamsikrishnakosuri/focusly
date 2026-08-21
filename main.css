@@ -3369,7 +3369,8 @@ body.acb-focus-mode.acb-fhide-io .io-card { display: none !important; }
     white-space: nowrap;
 }
 .focus-goal.is-empty { opacity: 0.65; font-weight: 600; }
-body.acb-focus-mode.acb-fhide-quest .focus-goal { visibility: visible; }
+body.acb-focus-mode.acb-fhide-quest .focus-goal,
+body.acb-focus-mode.acb-fhide-quest .focus-goal__input { visibility: visible; }
 
 .focus-goal__input {
     border: 2px solid var(--acb-green, #1a936f);
@@ -3495,24 +3496,34 @@ body.acb-focus-mode.acb-fhide-quest .focus-goal { visibility: visible; }
 /* The hidden attribute must always win over the flex display. */
 .big-timer[hidden] { display: none !important; }
 
-/* The custom color wheel, dressed as a fifth swatch. */
+/* The custom color swatch: shows the picked color, wears a + so it
+   always reads as changeable. Before any pick: a rainbow ring. */
 .bt-swatch--custom {
-    appearance: none;
-    -webkit-appearance: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
     width: 20px;
     height: 20px;
     border-radius: 50%;
     border: 2px solid rgba(0, 0, 0, 0.15);
-    padding: 0;
     cursor: pointer;
     overflow: hidden;
 }
-.bt-swatch--custom::-webkit-color-swatch-wrapper { padding: 0; }
-.bt-swatch--custom::-webkit-color-swatch {
-    border: none;
-    border-radius: 50%;
-    opacity: 0;   /* the rainbow ring stays; the picked color shows on the timer */
+.bt-swatch--custom input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+.bt-swatch__plus {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+    pointer-events: none;
 }
 .bt-swatch--custom.is-picked {
     outline: 2px solid var(--acb-green, #1a936f);
