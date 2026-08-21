@@ -3530,3 +3530,25 @@ body.acb-focus-mode.acb-fhide-quest .focus-goal__input { visibility: visible; }
 }
 
 .bt-recent { display: inline-flex; gap: 5px; }
+
+/* --- Micro-goal help: the consent popover + the tiny controls --- */
+.goal-help-pop {
+    position: fixed;
+    z-index: 320;
+    max-width: 300px;
+    background: var(--acb-panel, #fff);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.2);
+}
+.goal-help-pop__text { margin: 0 0 10px; font-size: 13.5px; line-height: 1.5; }
+.goal-help-pop__actions { display: flex; gap: 8px; align-items: center; }
+
+.focus-goal__help { font-size: 12px; }
+.micro-done {
+    background: var(--acb-green, #1a936f);
+    color: #fff;
+    font-weight: 800;
+}
+.micro-quit { opacity: 0.6; }
