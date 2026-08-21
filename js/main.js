@@ -814,22 +814,29 @@ function setupBreakTimerChip() {
             arc.style.strokeDasharray = String(CIRC);
             arc.style.strokeDashoffset = String(CIRC * (1 - fraction));
         }
+        // Time lives in exactly one place: when the big display is on,
+        // the chip shows only the state word, never a second countdown.
+        const bigShowing = (typeof bigTimerPrefs === 'function') &&
+            bigTimerPrefs().pos !== 'chip';
         if (state === 'off') {
             label.textContent = 'Timer';
             chip.setAttribute('aria-label', 'Timer off. Click for details.');
         } else if (paused) {
-            label.textContent = 'Paused ' + mmss(timer.remainingMs());
+            label.textContent = bigShowing ?
+                'Paused' : 'Paused ' + mmss(timer.remainingMs());
             chip.setAttribute('aria-label', 'Break reminder paused. Click for details.');
         } else if (state === 'break') {
-            label.textContent = 'Break ' + mmss(timer.remainingMs());
+            label.textContent = bigShowing ?
+                'Break' : 'Break ' + mmss(timer.remainingMs());
             chip.setAttribute('aria-label', 'On a break. Click for details.');
         } else if (state === 'nudging') {
             label.textContent = 'Break?';
             chip.setAttribute('aria-label', 'Break suggested. Click for details.');
         } else {
-            label.textContent = mmss(timer.remainingMs()) + ' · break';
+            label.textContent = bigShowing ?
+                'Working' : mmss(timer.remainingMs()) + ' · break';
             chip.setAttribute('aria-label', 'Break reminder running, ' +
-                label.textContent + '. Click for details.');
+                mmss(timer.remainingMs()) + ' until break. Click for details.');
         }
         if (toggleLabel) {
             toggleLabel.textContent = state === 'off' ?

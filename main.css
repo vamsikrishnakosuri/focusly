@@ -3399,7 +3399,7 @@ body.acb-focus-mode.acb-fhide-quest .focus-goal { visibility: visible; }
 /* Countdown display homes (see bigtimer.js: mounted inside its home). */
 .big-timer--left {
     position: fixed;
-    z-index: 60;
+    z-index: 190;   /* above the toolbox (70), below the NOW card (200) */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -3409,7 +3409,6 @@ body.acb-focus-mode.acb-fhide-quest .focus-goal { visibility: visible; }
 }
 .big-timer--right {
     position: static;
-    order: 99;
     display: flex;
     align-items: baseline;
     justify-content: center;

@@ -67,17 +67,21 @@ function bigTimerFont(pos, scale) {
     if (pos === 'left') {
         const toolbox = document.querySelector('.blocklyToolboxDiv');
         const width = toolbox ? toolbox.getBoundingClientRect().width : 130;
-        return Math.min(12 + scale * 22, Math.max(12, width / 5));
+        // "1h 22m 33s" is ~6 characters per line when it wraps; the cap
+        // keeps the widest line inside the column.
+        return Math.min(12 + scale * 22, Math.max(12, width / 5.6));
     }
     if (pos === 'right') {
-        const panel = document.querySelector('.execution-panel');
-        const width = panel ? panel.getBoundingClientRect().width : 320;
-        return Math.min(14 + scale * 44, Math.max(14, width / 6));
+        const card = document.getElementById('coachCard');
+        const width = card ? card.getBoundingClientRect().width : 300;
+        return Math.min(14 + scale * 40, Math.max(14, width / 7.5));
     }
-    // bottom: the widest home, still capped against tiny windows.
+    // bottom: capped against the BLOCK AREA (canvas minus toolbox).
     const canvas = document.getElementById('blocklyDiv');
-    const width = canvas ? canvas.getBoundingClientRect().width : 700;
-    return Math.min(14 + scale * 58, Math.max(14, width / 9));
+    const toolbox = document.querySelector('.blocklyToolboxDiv');
+    let width = canvas ? canvas.getBoundingClientRect().width : 700;
+    if (toolbox) width -= toolbox.getBoundingClientRect().width;
+    return Math.min(14 + scale * 58, Math.max(14, width / 10));
 }
 
 function bigTimerRender() {
@@ -120,9 +124,13 @@ function bigTimerRender() {
         el.removeAttribute('style-anchor');
         el.style.top = el.style.bottom = el.style.left = el.style.right = '';
     } else if (prefs.pos === 'right') {
-        const panel = document.querySelector('.execution-panel');
-        if (panel && el.parentElement !== panel) panel.appendChild(el);
+        // Directly under Blox's chat card, not at the column's far bottom.
+        const card = document.getElementById('coachCard');
+        if (card && el.previousElementSibling !== card) {
+            card.insertAdjacentElement('afterend', el);
+        }
         el.style.top = el.style.bottom = el.style.left = el.style.right = '';
+        el.style.width = '';
     } else if (prefs.pos === 'left') {
         if (el.parentElement !== document.body) document.body.appendChild(el);
         const toolbox = document.querySelector('.blocklyToolboxDiv');
@@ -133,15 +141,18 @@ function bigTimerRender() {
             el.style.right = el.style.bottom = '';
             el.style.width = `${rect.width}px`;
         }
-    } else {  // bottom: the workspace's bottom-left edge, under the blocks
+    } else {  // bottom: the block area's bottom edge, clear of the toolbox
         if (el.parentElement !== document.body) document.body.appendChild(el);
         const canvas = document.getElementById('blocklyDiv');
+        const toolbox = document.querySelector('.blocklyToolboxDiv');
         if (canvas) {
             const rect = canvas.getBoundingClientRect();
-            el.style.left = `${rect.left + 76}px`;
+            const blocksLeft = toolbox ?
+                toolbox.getBoundingClientRect().right : rect.left;
+            el.style.left = `${blocksLeft + 18}px`;
             el.style.top = '';
             el.style.bottom =
-                `${Math.max(8, window.innerHeight - rect.bottom + 10)}px`;
+                `${Math.max(8, window.innerHeight - rect.bottom + 12)}px`;
             el.style.right = el.style.width = '';
         }
     }
