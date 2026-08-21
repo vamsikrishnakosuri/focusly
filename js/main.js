@@ -184,6 +184,7 @@ function initWorkspace() {
     if (typeof setupShare === 'function') setupShare(workspace);
     if (typeof setupCollab === 'function') setupCollab(workspace);
     if (typeof setupBigTimer === 'function') setupBigTimer();
+    if (typeof setupTimeWheels === 'function') setupTimeWheels();
     if (typeof setupFocusView === 'function') setupFocusView();
 
     // Researcher reset: wipe every acb.* key and reload, so the next
@@ -748,15 +749,17 @@ function setupBreakTimerChip() {
             `${m}m ${String(s).padStart(2, '0')}s`;
     };
 
-    /** 25.5 minutes -> "25:30"; 90 minutes -> "1:30:00". */
+    /** 25.5 minutes -> "25m 30s"; 90 minutes -> "1h 30m 00s". Units are
+     * always visible, so nobody wonders what they are setting. */
     const minutesToMmss = (minutes) => {
         const total = Math.round((Number(minutes) || 0) * 60);
         const h = Math.floor(total / 3600);
         const m = Math.floor((total % 3600) / 60);
         const sec = total % 60;
         return h > 0 ?
-            `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` :
-            `${m}:${String(sec).padStart(2, '0')}`;
+            `${h}h ${String(m).padStart(2, '0')}m ` +
+                `${String(sec).padStart(2, '0')}s` :
+            `${m}m ${String(sec).padStart(2, '0')}s`;
     };
 
     /**
@@ -768,13 +771,23 @@ function setupBreakTimerChip() {
      * @param {number} maxSeconds
      */
     const parseMmss = (raw, minSeconds, maxSeconds) => {
-        const text = String(raw).trim();
+        const text = String(raw).trim().toLowerCase();
         let seconds = null;
         let match = text.match(/^(\d{1,2}):([0-5]?\d):([0-5]?\d)$/);
         if (match) {
             seconds = Number(match[1]) * 3600 + Number(match[2]) * 60 +
                 Number(match[3]);
-        } else {
+        }
+        if (seconds === null) {
+            // Unit style, as the field displays it: "25m 30s", "1h 30m".
+            match = text.match(
+                /^(?:(\d{1,2})\s*h)?\s*(?:(\d{1,3})\s*m)?\s*(?:(\d{1,3})\s*s)?$/);
+            if (match && (match[1] || match[2] || match[3])) {
+                seconds = Number(match[1] || 0) * 3600 +
+                    Number(match[2] || 0) * 60 + Number(match[3] || 0);
+            }
+        }
+        if (seconds === null) {
             match = text.match(/^(\d{1,3})(?::([0-5]?\d))?$/);
             if (match) {
                 seconds = Number(match[1]) * 60 + Number(match[2] || 0);

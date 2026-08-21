@@ -49,6 +49,7 @@
     <script src="./js/share.js"></script>
     <script src="./js/collab.js"></script>
     <script src="./js/bigtimer.js"></script>
+    <script src="./js/timewheel.js"></script>
     <script src="./js/focus_view.js"></script>
 </head>
 <body onload="initWorkspace()">
@@ -112,16 +113,16 @@
                     <label class="timer-dropdown__row">
                         <span>Work</span>
                         <input id="timerWorkInput" class="timer-input" type="text"
-                               inputmode="numeric" placeholder="25:00" maxlength="6"
-                               aria-label="Work length, minutes and seconds, like 25:00">
+                               placeholder="25m 00s" maxlength="12"
+                               aria-label="Work length. Click to open the time wheel, or type like 25m 30s">
                     </label>
                     <label class="timer-dropdown__row">
                         <span>Break</span>
                         <input id="timerBreakInput" class="timer-input" type="text"
-                               inputmode="numeric" placeholder="05:00" maxlength="6"
-                               aria-label="Break length, minutes and seconds, like 05:00">
+                               placeholder="5m 00s" maxlength="12"
+                               aria-label="Break length. Click to open the time wheel, or type like 5m 00s">
                     </label>
-                    <p class="timer-dropdown__note">Type times as minutes:seconds like 25:00, or with hours like 1:30:00.</p>
+                    <p class="timer-dropdown__note">Click a time to spin the wheel, or type it like 25m 30s or 1h 30m.</p>
                     <button id="timerPauseButton" class="settings-item" type="button">
                         <i class="fas fa-pause" aria-hidden="true"></i>
                         <span id="timerPauseButtonLabel">Pause timer</span>
