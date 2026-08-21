@@ -244,6 +244,20 @@ async function requestMicroGoals() {
         };
         return;
     }
+    // The learner's AI switch governs every AI feature, this one included.
+    let aiAllowed = true;
+    try { aiAllowed = localStorage.getItem('acb.aiCoach') !== 'false'; }
+    catch (e) { /* fine */ }
+    if (!aiAllowed) {
+        const text = document.querySelector('.goal-help-pop__text');
+        if (text) {
+            text.textContent = 'You have the AI coach switched off, so I ' +
+                'will not split anything. Turn it on in ⚙ settings if you ' +
+                'change your mind - your goal stays right where it is.';
+        }
+        yes.remove();
+        return;
+    }
     yes.disabled = true;
     yes.textContent = 'Blox is thinking…';
     const pop = document.getElementById('goalHelpPop');
@@ -266,7 +280,11 @@ async function requestMicroGoals() {
             signal: controller.signal,
         });
         clearTimeout(timer);
-        if (!response.ok) throw new Error(`server said ${response.status}`);
+        if (!response.ok) {
+            const err = new Error(`server said ${response.status}`);
+            err.status = response.status;
+            throw err;
+        }
         const {task} = await response.json();
         const steps = (task.steps || []).map((s) => s.text)
             .filter(Boolean).slice(0, 5);
@@ -276,11 +294,24 @@ async function requestMicroGoals() {
         coachSay('Here is your goal in tiny pieces - just the one in the ' +
             'bar for now. Tap ✓ when a piece is done and the next appears.');
     } catch (e) {
+        // Honest failure messages: each cause reads differently.
         const text = document.querySelector('.goal-help-pop__text');
         if (text) {
-            text.textContent = 'Blox could not reach his thinking server ' +
-                'just now. Your goal is safe; try the split again in a ' +
-                'minute.';
+            if (e.status === 429) {
+                text.textContent = 'The splitter has done a lot this hour ' +
+                    'and is taking a breather. Your goal is safe - try ' +
+                    'again in a little while, or split it yourself: what ' +
+                    'is the smallest first piece?';
+            } else if (e.status >= 400 && e.status < 600) {
+                text.textContent = 'I could not slice that one into ' +
+                    'coding steps - it may not be a block-programming ' +
+                    'goal. Phrase it as something to build ("print my ' +
+                    'name 3 times") and I will try again.';
+            } else {
+                text.textContent = 'Blox could not reach his thinking ' +
+                    'server just now. Your goal is safe; try the split ' +
+                    'again in a minute.';
+            }
         }
         if (yes) { yes.disabled = false; yes.textContent = 'Try again'; }
     } finally {
