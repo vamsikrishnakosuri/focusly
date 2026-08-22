@@ -87,8 +87,40 @@ function focusGoalChip() {
 
 function microGoals() {
     try {
-        return JSON.parse(localStorage.getItem('acb.microGoals') || 'null');
+        const micro = JSON.parse(
+            localStorage.getItem('acb.microGoals') || 'null');
+        if (!micro) return null;
+        // v1 stored plain strings + an index; v2 items are checkable and
+        // can hold sub-steps (the Goblin-Tools pattern: any step can be
+        // broken down again).
+        if (micro.steps.length && typeof micro.steps[0] === 'string') {
+            micro.steps = micro.steps.map((text, i) => ({
+                text, done: i < (micro.index || 0), children: [],
+            }));
+            delete micro.index;
+        }
+        return micro;
     } catch (e) { return null; }
+}
+
+/** Every actionable leaf, in order: a step without sub-steps, or each of
+ * its sub-steps when it has them. */
+function microLeaves(micro) {
+    const leaves = [];
+    for (const step of micro.steps) {
+        if (step.children && step.children.length) {
+            for (const child of step.children) {
+                leaves.push({item: child, parent: step});
+            }
+        } else {
+            leaves.push({item: step, parent: null});
+        }
+    }
+    return leaves;
+}
+
+function microCurrent(micro) {
+    return microLeaves(micro).find((leaf) => !leaf.item.done) || null;
 }
 
 function saveMicroGoals(value) {
@@ -115,8 +147,15 @@ function microControls() {
         done.addEventListener('click', () => {
             const micro = microGoals();
             if (!micro) return;
-            micro.index += 1;
-            if (micro.index >= micro.steps.length) {
+            const current = microCurrent(micro);
+            if (current) {
+                current.item.done = true;
+                if (current.parent &&
+                    current.parent.children.every((c) => c.done)) {
+                    current.parent.done = true;
+                }
+            }
+            if (!microCurrent(micro)) {
                 saveMicroGoals(null);
                 if (typeof playChime === 'function') playChime('quest');
                 if (typeof celebrateConfetti === 'function') {
@@ -199,9 +238,10 @@ async function splitGoalViaBlox() {
         }
         const {task} = await response.json();
         const steps = (task.steps || []).map((s) => s.text)
-            .filter(Boolean).slice(0, 5);
+            .filter(Boolean).slice(0, 5)
+            .map((text) => ({text, done: false, children: []}));
         if (!steps.length) throw new Error('no steps came back');
-        saveMicroGoals({goal, steps, index: 0});
+        saveMicroGoals({goal, steps});
         coachSay('Here is your goal in tiny pieces - just the one in the ' +
             'bar for now. Tap ✓ when a piece is done and the next appears.');
     } catch (e) {
@@ -221,6 +261,176 @@ async function splitGoalViaBlox() {
     } finally {
         if (typeof bloxSpinStop === 'function') bloxSpinStop();
         focusGoalRender();
+    }
+}
+
+/* ---- The plan panel: the whole breakdown as a checkable tree ---------- */
+/* One current step stays in the bar (anti-overwhelm); the panel shows    */
+/* the full plan on demand - and any step can be broken down again, the   */
+/* pattern the ADHD community knows from Goblin Tools' Magic ToDo.        */
+
+function planToggleButton() {
+    let toggle = document.getElementById('planToggle');
+    if (!toggle) {
+        toggle = document.createElement('button');
+        toggle.id = 'planToggle';
+        toggle.type = 'button';
+        toggle.className = 'coach-chip plan-toggle';
+        toggle.textContent = '☰';
+        toggle.title = 'See the whole plan';
+        document.querySelector('.quest-bar')?.appendChild(toggle);
+        toggle.addEventListener('click', () => {
+            const panel = document.getElementById('planPanel');
+            if (panel && !panel.hidden) { panel.hidden = true; return; }
+            renderPlanPanel();
+        });
+    }
+    return toggle;
+}
+
+function planPanelEl() {
+    let panel = document.getElementById('planPanel');
+    if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'planPanel';
+        panel.className = 'plan-panel';
+        panel.hidden = true;
+        document.body.appendChild(panel);
+    }
+    return panel;
+}
+
+function renderPlanPanel() {
+    const micro = microGoals();
+    const panel = planPanelEl();
+    if (!micro) { panel.hidden = true; return; }
+    // The rendered tree is the live tree: row handlers and the splitter
+    // all mutate this one object, then persist it whole.
+    window.__acbMicroLive = micro;
+    const leaves = microLeaves(micro);
+    const doneCount = leaves.filter((l) => l.item.done).length;
+    panel.innerHTML = '';
+
+    const head = document.createElement('div');
+    head.className = 'plan-panel__head';
+    head.innerHTML = `<strong>${micro.goal}</strong>` +
+        `<span>${doneCount}/${leaves.length} done</span>`;
+    panel.appendChild(head);
+
+    const addRow = (item, depth, parent) => {
+        const row = document.createElement('div');
+        row.className = 'plan-panel__row' +
+            (depth ? ' plan-panel__row--sub' : '') +
+            (item.done ? ' is-done' : '');
+        const box = document.createElement('input');
+        box.type = 'checkbox';
+        box.checked = !!item.done;
+        box.addEventListener('change', () => {
+            item.done = box.checked;
+            if (item.children && item.children.length) {
+                item.children.forEach((c) => { c.done = box.checked; });
+            }
+            if (parent) {
+                parent.done = parent.children.every((c) => c.done);
+            }
+            saveMicroGoals(micro);
+            renderPlanPanel();
+            focusGoalRender();
+        });
+        const label = document.createElement('span');
+        label.className = 'plan-panel__text';
+        label.textContent = item.text;
+        row.appendChild(box);
+        row.appendChild(label);
+        // Any un-split top-level step can be broken down further.
+        if (!depth && (!item.children || !item.children.length) &&
+            !item.done) {
+            const split = document.createElement('button');
+            split.type = 'button';
+            split.className = 'plan-panel__split';
+            split.textContent = '✂';
+            split.title = 'Break this step down further';
+            split.addEventListener('click',
+                () => splitStepViaBlox(item, split));
+            row.appendChild(split);
+        }
+        panel.appendChild(row);
+    };
+    for (const step of micro.steps) {
+        addRow(step, 0, null);
+        (step.children || []).forEach((child) => addRow(child, 1, step));
+    }
+
+    // Their own steps belong in their own plan.
+    const addBox = document.createElement('div');
+    addBox.className = 'plan-panel__add';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.maxLength = 80;
+    input.placeholder = '+ add your own step…';
+    input.addEventListener('keydown', (event) => {
+        event.stopPropagation();
+        if (event.key === 'Enter' && input.value.trim()) {
+            micro.steps.push({text: input.value.trim(), done: false,
+                children: []});
+            saveMicroGoals(micro);
+            renderPlanPanel();
+            focusGoalRender();
+        }
+    });
+    addBox.appendChild(input);
+    panel.appendChild(addBox);
+
+    // Sit just under the goal bar.
+    const bar = document.querySelector('.app-bar');
+    if (bar) {
+        panel.style.top = `${bar.getBoundingClientRect().bottom + 8}px`;
+    }
+    panel.hidden = false;
+}
+
+/** Break one step into 2-4 smaller ones, in place, via the same
+ * guardrailed author endpoint that split the goal. */
+async function splitStepViaBlox(item, button) {
+    let aiAllowed = true;
+    try { aiAllowed = localStorage.getItem('acb.aiCoach') !== 'false'; }
+    catch (e) { /* fine */ }
+    if (!aiAllowed) {
+        coachSay('You have my AI switched off, so I will not split ' +
+            'anything - but you can add your own sub-steps below.');
+        return;
+    }
+    if (button) { button.disabled = true; button.textContent = '…'; }
+    if (typeof bloxSpinStart === 'function') bloxSpinStart();
+    try {
+        const server = (typeof ACB_COACH_SERVER !== 'undefined') ?
+            ACB_COACH_SERVER : window.FOCUSLY_COACH_URL;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 60000);
+        const response = await fetch(`${server}/author`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({level: 'beginner', topic: item.text}),
+            signal: controller.signal,
+        });
+        clearTimeout(timer);
+        if (!response.ok) throw new Error(String(response.status));
+        const {task} = await response.json();
+        const children = (task.steps || []).map((s) => s.text)
+            .filter(Boolean).slice(0, 4)
+            .map((text) => ({text, done: false}));
+        if (!children.length) throw new Error('no steps');
+        item.children = children;
+        item.done = false;
+        saveMicroGoals(window.__acbMicroLive || microGoals());
+        renderPlanPanel();
+        focusGoalRender();
+    } catch (e) {
+        coachSay('I could not slice that one just now - try again in a ' +
+            'little while, or add your own sub-steps.');
+        if (button) { button.disabled = false; button.textContent = '✂'; }
+    } finally {
+        if (typeof bloxSpinStop === 'function') bloxSpinStop();
     }
 }
 
@@ -282,14 +492,17 @@ function focusGoalRender() {
     if (stray && !document.getElementById('focusGoalChip')) stray.remove();
     const chip = focusGoalChip();
     const {done, quit} = microControls();
+    const planToggle = planToggleButton();
     const inFocus = document.body.classList.contains('acb-focus-mode');
     const goal = focusGoal();
     const micro = microGoals();
-    const microActive = inFocus && micro && micro.goal === goal &&
-        micro.index < micro.steps.length;
+    const current = micro ? microCurrent(micro) : null;
+    const microActive = inFocus && micro && micro.goal === goal && current;
     chip.hidden = !inFocus;
     done.hidden = !microActive;
     if (quit) quit.hidden = !microActive;
+    planToggle.hidden = !microActive;
+    if (!microActive) planPanelEl().hidden = true;
     // Blox's own split chip lives in his panel: present exactly when he is.
     const splitChip = document.getElementById('coachSplitGoal');
     if (splitChip) splitChip.hidden = !inFocus || !goal || !!microActive;
@@ -312,9 +525,12 @@ function focusGoalRender() {
     }
     if (!inFocus) return;
     if (microActive) {
-        chip.textContent = `🎯 ${micro.index + 1}/${micro.steps.length}: ` +
-            micro.steps[micro.index];
-        chip.title = micro.steps[micro.index];
+        const leaves = microLeaves(micro);
+        const position =
+            leaves.findIndex((leaf) => leaf.item === current.item) + 1;
+        chip.textContent =
+            `🎯 ${position}/${leaves.length}: ${current.item.text}`;
+        chip.title = current.item.text;
         chip.classList.remove('is-empty');
     } else {
         chip.textContent = goal ? `🎯 ${goal}` : '🎯 Set a goal…';
