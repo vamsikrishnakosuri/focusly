@@ -2234,17 +2234,27 @@ async function acbCheckCoachHealth(timeoutMs = 3000) {
             clearTimeout(timer);
         }
     };
-    if (await tryUrl(ACB_COACH_SERVER)) {
-        acbAiCoachAvailable = true;
-        return true;
+    // Every server this page could talk to, in preference order. The
+    // localhost one matters: when the hosted server is unreachable from
+    // this network, a coach running on this same machine still rescues
+    // the session.
+    const candidates = [ACB_COACH_SERVER];
+    if (window.FOCUSLY_COACH_URL) {
+        candidates.push(window.FOCUSLY_COACH_URL);
     }
-    const fallback = window.FOCUSLY_COACH_URL || 'http://localhost:8124';
-    if (fallback !== ACB_COACH_SERVER && await tryUrl(fallback)) {
-        ACB_COACH_SERVER = fallback;
-        try { localStorage.removeItem('acb.coachServer'); }
-        catch (e) { /* fine */ }
-        acbAiCoachAvailable = true;
-        return true;
+    // Browsers treat localhost as trustworthy even from https pages,
+    // so a locally-running coach is always worth a try.
+    candidates.push('http://localhost:8124');
+    for (const url of [...new Set(candidates)]) {
+        if (await tryUrl(url)) {
+            if (url !== ACB_COACH_SERVER) {
+                ACB_COACH_SERVER = url;
+                try { localStorage.removeItem('acb.coachServer'); }
+                catch (e) { /* fine */ }
+            }
+            acbAiCoachAvailable = true;
+            return true;
+        }
     }
     acbAiCoachAvailable = false;
     return false;
@@ -2689,8 +2699,9 @@ function setupCoachChat() {
         if (!acbAiCoachAvailable) {
             // One live retry before giving up - the server may just be
             // waking, or came up after the page loaded.
-            coachThinking('Reaching Blox');
-            const ok = await acbCheckCoachHealth(5000);
+            coachThinking('Reaching Blox (a sleeping server can take ' +
+                'up to a minute)');
+            const ok = await acbCheckCoachHealth(45000);
             if (!ok) {
                 coachSay('I could not reach the coach server. If it ' +
                     'was asleep it may need a minute - try once more.');
