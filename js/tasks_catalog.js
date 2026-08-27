@@ -21,7 +21,8 @@ const ACB_TASKS = [
     quest: 'Teach the computer to greet the world',
     steps: [
       {
-        text: 'Find the print block and drag it into the workspace.',
+        text: 'Open the Text drawer and drag the print block onto the ' +
+            'workspace. It already comes with a little text box attached.',
         blocks: ['text_print', 'text'],
         hints: [
           'Printing is how the computer talks to you - its words show up in the Output panel.',
@@ -30,16 +31,18 @@ const ACB_TASKS = [
         ],
       },
       {
-        text: 'Click the quotes in the print block and change the text to "Hello, world!".',
+        text: 'Click the text box between the quotes (it says abc) and ' +
+            'type: Hello, world!',
         blocks: ['text_print', 'text'],
         hints: [
-          'The print block already has a text piece attached (it says "abc"). Whatever you type there is exactly what the computer will say.',
-          'Click directly on the quoted "abc" inside the print block - a typing cursor appears and you can replace it.',
-          'Click the quotes, delete "abc", and type: Hello, world!',
+          'The little box between the quote marks is where you type. Whatever you put there is exactly what the computer will say.',
+          'Click the abc inside the print block - a typing cursor appears so you can replace it.',
+          'Click the text box, delete abc, and type: Hello, world!',
         ],
       },
       {
-        text: 'Press Run my code and read the Output panel.',
+        text: 'Press the green "Run my code" button, then read the ' +
+            'Output panel.',
         blocks: ['text_print', 'text'],
         hints: [
           'Nothing happens until you run it - the green button brings your blocks to life.',

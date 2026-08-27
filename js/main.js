@@ -1705,6 +1705,23 @@ function setupQuests(workspace) {
         restoreToolbox();
         renderStep();
 
+        // The finished checklist is the payoff: every step struck out,
+        // the LAST one included, instead of the list vanishing the
+        // moment the quest completes.
+        const holder = document.getElementById('coachChecklist');
+        const list = document.getElementById('coachChecklistItems');
+        if (holder && list) {
+            list.innerHTML = '';
+            result.task.steps.forEach((step) => {
+                const item = document.createElement('li');
+                item.className = 'coach-checklist__item is-done';
+                item.textContent = step.text;
+                item.setAttribute('aria-label', `Done: ${step.text}`);
+                list.appendChild(item);
+            });
+            holder.hidden = false;
+        }
+
         const doneCard = document.getElementById('questDoneCard');
         const doneText = document.getElementById('questDoneText');
         const nextButton = document.getElementById('questDoneNext');
@@ -2362,14 +2379,19 @@ function acbStuckDiagnosis() {
     const lines = [];
     const has = (type) => facts.blocks.some((b) => b.type === type);
 
-    // Junk first: block types no step of this quest ever uses.
+    // Junk first: block types no step of this quest ever uses. Value
+    // pieces (numbers, text, variable chips) ride attached inside other
+    // blocks, so they are never junk on their own.
+    const carriers = new Set(['text', 'math_number', 'variables_get',
+        'logic_boolean']);
     const allowed = new Set();
     for (const s of acbTaskEngine.task.steps) {
         for (const t of (s.blocks || [])) allowed.add(t);
     }
     const flagged = new Set();
     for (const b of facts.blocks) {
-        if (!allowed.has(b.type) && !flagged.has(b.type)) {
+        if (!allowed.has(b.type) && !carriers.has(b.type) &&
+            !flagged.has(b.type)) {
             flagged.add(b.type);
             lines.push('Remove the "' + acbBlockName(b.type) +
                 '" block. This quest never needs it.');
@@ -2419,7 +2441,12 @@ function acbStuckDiagnosis() {
             return value !== undefined;
         });
         if (hit) continue;
-        if (want.equals !== undefined) {
+        const wanted = want.equals !== undefined ?
+            want.equals : want.includes;
+        if (want.type === 'text') {
+            lines.push('Click the text box between the quotes and ' +
+                'type: ' + wanted);
+        } else if (want.equals !== undefined) {
             lines.push(has(want.type) ?
                 'Click the value on a "' + acbBlockName(want.type) +
                     '" block and type ' + want.equals + '.' :
