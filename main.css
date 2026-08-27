@@ -1922,8 +1922,32 @@ select, option, select:focus, option:hover, button {
 }
 
 /* Placement choices, for large-text users whose card would otherwise
-   cover the workspace: tucked left by the toolbox, or slimmed down to
-   just the step number and buttons. */
+   cover the workspace: docked below the canvas (default - the canvas
+   shrinks instead of being covered), floating center, tucked left by
+   the toolbox, or slimmed down to step number and buttons. */
+body.acb-now-dock #blocklyApp {
+    display: flex;
+    flex-direction: column;
+}
+body.acb-now-dock #blocklyDiv {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+}
+.now-card--dock {
+    position: static;
+    transform: none;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    border-radius: 0;
+    border-left: none;
+    border-top: 4px solid var(--acb-green);
+    box-shadow: none;
+    transition: none;
+    flex-shrink: 0;
+}
+
 .now-card--left {
     left: 16px;
     transform: none;

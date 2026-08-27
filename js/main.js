@@ -1444,6 +1444,9 @@ function setupQuests(workspace) {
             doneButton.className =
                 'now-card__button now-card__button--primary';
         }
+        // Back only exists once there is somewhere to go back to.
+        const backButton = document.getElementById('nowCardBack');
+        if (backButton) backButton.hidden = acbTaskEngine.stepIndex === 0;
         nowCard.hidden = false;
         hideCoachHint();
         if (step.parsons) {
@@ -1783,24 +1786,43 @@ function setupQuests(workspace) {
         }
     });
 
-    // The card can move out of the way: bottom-center (default), tucked
-    // left beside the toolbox, or slimmed to just step number + buttons.
-    // Matters most at the larger text sizes, where the full card can
-    // cover a good slice of the workspace.
-    const nowPositions = ['center', 'left', 'min'];
+    // The card must never cover the learner's blocks. Default is
+    // "dock": the card sits in its own strip below the canvas and the
+    // canvas SHRINKS to make room - nothing is ever hidden behind it,
+    // at any zoom or text size. Move cycles the other placements for
+    // anyone who prefers the floating card.
+    const nowPositions = ['dock', 'center', 'left', 'min'];
     const applyNowPos = (pos) => {
+        nowCard.classList.toggle('now-card--dock', pos === 'dock');
         nowCard.classList.toggle('now-card--left', pos === 'left');
         nowCard.classList.toggle('now-card--min', pos === 'min');
+        document.body.classList.toggle('acb-now-dock', pos === 'dock');
         const moveButton = document.getElementById('nowCardMove');
         if (moveButton) {
             moveButton.textContent = pos === 'min' ? 'Expand' : 'Move';
         }
+        // The canvas changed size; Blockly has to re-measure or the
+        // right edge of the workspace goes dead.
+        try { Blockly.svgResize(Blockly.getMainWorkspace()); }
+        catch (e) { /* fine */ }
     };
-    let nowPos = 'center';
-    try { nowPos = localStorage.getItem('acb.nowCardPos') || 'center'; }
+    let nowPos = 'dock';
+    try { nowPos = localStorage.getItem('acb.nowCardPos') || 'dock'; }
     catch (e) { /* fine */ }
-    if (!nowPositions.includes(nowPos)) nowPos = 'center';
+    if (!nowPositions.includes(nowPos)) nowPos = 'dock';
     applyNowPos(nowPos);
+    // Whenever the canvas strip changes size (card appears, grows with
+    // text size, browser zoom), Blockly must re-measure itself or the
+    // freed space goes dead.
+    if (window.ResizeObserver) {
+        const canvasBox = document.getElementById('blocklyDiv');
+        if (canvasBox) {
+            new ResizeObserver(() => {
+                try { Blockly.svgResize(Blockly.getMainWorkspace()); }
+                catch (e) { /* fine */ }
+            }).observe(canvasBox);
+        }
+    }
     document.getElementById('nowCardMove')?.addEventListener('click', () => {
         nowPos = nowPositions[
             (nowPositions.indexOf(nowPos) + 1) % nowPositions.length];
@@ -1832,6 +1854,20 @@ function setupQuests(workspace) {
         if (!acbTaskEngine.task) return;
         acbTaskEngine.restart();
         coachSay('Back to step 1. Fresh eyes help!');
+        renderStep();
+    });
+
+    // One step back - the undo for a hasty "Skip this step". Start over
+    // stays for going all the way back to step 1.
+    document.getElementById('nowCardBack')?.addEventListener('click', () => {
+        if (!acbTaskEngine.task || acbTaskEngine.stepIndex === 0) return;
+        acbTaskEngine.stepIndex--;
+        acbTaskEngine.hintsUsed = 0;
+        try {
+            acbTaskEngine._writeProgress(
+                acbTaskEngine.task.id, acbTaskEngine.stepIndex);
+        } catch (e) { /* progress persistence is best-effort */ }
+        coachSay('Back one step. Your blocks are all still here.');
         renderStep();
     });
 
