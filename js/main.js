@@ -1595,8 +1595,9 @@ function setupQuests(workspace) {
             return;
         }
         if (!acbAiCoachAvailable) {
-            challengeStatus.textContent = 'Reaching the coach server…';
-            const ok = await acbCheckCoachHealth(5000);
+            challengeStatus.textContent = 'Reaching the coach server… ' +
+                '(a sleeping server can take up to a minute)';
+            const ok = await acbCheckCoachHealth(45000);
             if (!ok) {
                 challengeStatus.textContent = 'The coach server is not ' +
                     'answering. If it was asleep it may need a minute - ' +
@@ -2219,7 +2220,7 @@ let acbAiCoachAvailable = false;
  * @param {number=} timeoutMs Per-attempt cap.
  * @returns {!Promise<boolean>}
  */
-async function acbCheckCoachHealth(timeoutMs = 3000) {
+async function acbCheckCoachHealth(timeoutMs = 12000) {
     const tryUrl = async (url) => {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -2242,9 +2243,13 @@ async function acbCheckCoachHealth(timeoutMs = 3000) {
     if (window.FOCUSLY_COACH_URL) {
         candidates.push(window.FOCUSLY_COACH_URL);
     }
-    // Browsers treat localhost as trustworthy even from https pages,
-    // so a locally-running coach is always worth a try.
-    candidates.push('http://localhost:8124');
+    // A locally-running coach is worth a try - but only from a local
+    // page: Chrome's private-network rules block public https sites
+    // from reaching localhost at all.
+    if (window.location.protocol !== 'https:' ||
+        ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+        candidates.push('http://localhost:8124');
+    }
     for (const url of [...new Set(candidates)]) {
         if (await tryUrl(url)) {
             if (url !== ACB_COACH_SERVER) {
