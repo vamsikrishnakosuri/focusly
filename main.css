@@ -1909,6 +1909,7 @@ select, option, select:focus, option:hover, button {
     bottom: 16px;
     left: 50%;
     transform: translateX(-50%);
+    transition: left 0.3s ease;
     z-index: 200;  /* Blockly's toolbox sits at 70; the step floats above. */
     width: max-content;
     max-width: min(460px, calc(100% - 40px));
@@ -1919,6 +1920,27 @@ select, option, select:focus, option:hover, button {
     box-shadow: var(--acb-shadow);
     padding: 12px 16px;
 }
+
+/* Placement choices, for large-text users whose card would otherwise
+   cover the workspace: tucked left by the toolbox, or slimmed down to
+   just the step number and buttons. */
+.now-card--left {
+    left: 16px;
+    transform: none;
+}
+.now-card--min .now-card__text,
+.now-card--min .now-card__blocks-row {
+    display: none;
+}
+.now-card--min {
+    padding: 8px 12px;
+}
+.now-card--min .now-card__actions {
+    margin-top: 6px;
+}
+
+/* Direct help arrives as a numbered list; keep the line breaks. */
+#coachHintText { white-space: pre-line; }
 
 .now-card__kicker {
     margin: 0 0 4px;

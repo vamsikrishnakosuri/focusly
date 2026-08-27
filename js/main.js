@@ -1766,6 +1766,32 @@ function setupQuests(workspace) {
         }
     });
 
+    // The card can move out of the way: bottom-center (default), tucked
+    // left beside the toolbox, or slimmed to just step number + buttons.
+    // Matters most at the larger text sizes, where the full card can
+    // cover a good slice of the workspace.
+    const nowPositions = ['center', 'left', 'min'];
+    const applyNowPos = (pos) => {
+        nowCard.classList.toggle('now-card--left', pos === 'left');
+        nowCard.classList.toggle('now-card--min', pos === 'min');
+        const moveButton = document.getElementById('nowCardMove');
+        if (moveButton) {
+            moveButton.textContent = pos === 'min' ? 'Expand' : 'Move';
+        }
+    };
+    let nowPos = 'center';
+    try { nowPos = localStorage.getItem('acb.nowCardPos') || 'center'; }
+    catch (e) { /* fine */ }
+    if (!nowPositions.includes(nowPos)) nowPos = 'center';
+    applyNowPos(nowPos);
+    document.getElementById('nowCardMove')?.addEventListener('click', () => {
+        nowPos = nowPositions[
+            (nowPositions.indexOf(nowPos) + 1) % nowPositions.length];
+        try { localStorage.setItem('acb.nowCardPos', nowPos); }
+        catch (e) { /* fine */ }
+        applyNowPos(nowPos);
+    });
+
     document.getElementById('nowCardStuck')?.addEventListener('click', () => {
         // Blox answers in the coach card, and the Animation tab hides
         // that card - so a click there would burn a hint invisibly.
@@ -2282,12 +2308,174 @@ function renderHintView() {
     } catch (e) { /* fine */ }
 }
 
+/** Friendly names for block types, for direct help sentences. */
+const ACB_BLOCK_NAMES = {
+    'variables_set': 'set variable',
+    'variables_get': 'variable',
+    'math_change': 'change variable',
+    'controls_repeat_ext': 'repeat',
+    'text_print': 'print',
+    'math_number': 'number',
+    'text': 'text',
+    'controls_if': 'if',
+    'math_number_property': 'is even or odd',
+    'math_arithmetic': 'math',
+};
+
+function acbBlockName(type) {
+    return ACB_BLOCK_NAMES[type] || String(type).replace(/_/g, ' ');
+}
+
+/** Which toolbox drawer holds a block type, or null. */
+function acbDrawerFor(type) {
+    if (typeof toolboxConfig === 'undefined') return null;
+    for (const item of toolboxConfig.contents || []) {
+        if (String(item.kind).toLowerCase() !== 'category') continue;
+        if (item.custom === 'VARIABLE' &&
+            (type.startsWith('variables_') || type === 'math_change')) {
+            return item.name;
+        }
+        for (const inner of item.contents || []) {
+            if (inner.type === type) return item.name;
+        }
+    }
+    return null;
+}
+
+/**
+ * Direct help, read straight off the learner's workspace: exactly which
+ * blocks to remove, add, move, or retype for the CURRENT step. Returns
+ * null when the step has no authored check to diagnose against.
+ * @returns {?Array<string>} Concrete fix-it lines, in order.
+ */
+function acbStuckDiagnosis() {
+    if (!acbTaskEngine || !acbTaskEngine.task) return null;
+    const step = acbTaskEngine.currentStep();
+    if (!step || !step.check) return null;
+    if (typeof extractFacts !== 'function' ||
+        typeof checkSatisfied !== 'function') return null;
+    const workspace = Blockly.getMainWorkspace();
+    if (!workspace) return null;
+    const facts = extractFacts(workspace);
+    const output = (typeof acbLastRunOutput === 'string') ?
+        acbLastRunOutput : '';
+    const lines = [];
+    const has = (type) => facts.blocks.some((b) => b.type === type);
+
+    // Junk first: block types no step of this quest ever uses.
+    const allowed = new Set();
+    for (const s of acbTaskEngine.task.steps) {
+        for (const t of (s.blocks || [])) allowed.add(t);
+    }
+    const flagged = new Set();
+    for (const b of facts.blocks) {
+        if (!allowed.has(b.type) && !flagged.has(b.type)) {
+            flagged.add(b.type);
+            lines.push('Remove the "' + acbBlockName(b.type) +
+                '" block. This quest never needs it.');
+        }
+    }
+
+    const check = step.check;
+    for (const want of check.blocks || []) {
+        const count = facts.blocks.filter(
+            (b) => b.type === want.type).length;
+        const need = want.count || 1;
+        if (count < need) {
+            const drawer = acbDrawerFor(want.type);
+            lines.push('Add ' + (need - count > 1 ?
+                (need - count) + ' more' : 'a') + ' "' +
+                acbBlockName(want.type) + '" block' +
+                (drawer ? ' from the ' + drawer + ' drawer' : '') + '.');
+        }
+    }
+    for (const want of check.within || []) {
+        const ok = facts.blocks.filter((b) => b.type === want.child &&
+            b.ancestors.includes(want.of)).length >= (want.count || 1);
+        if (ok) continue;
+        if (has(want.child)) {
+            lines.push('Move your "' + acbBlockName(want.child) +
+                '" block INSIDE the "' + acbBlockName(want.of) +
+                '" block.');
+        } else {
+            const drawer = acbDrawerFor(want.child);
+            lines.push('Add a "' + acbBlockName(want.child) + '" block' +
+                (drawer ? ' from the ' + drawer + ' drawer' : '') +
+                ' and snap it inside the "' + acbBlockName(want.of) +
+                '" block.');
+        }
+    }
+    for (const want of check.fields || []) {
+        const hit = facts.blocks.some((b) => {
+            if (b.type !== want.type) return false;
+            const value = b.fields[want.name];
+            if (want.equals !== undefined) {
+                return String(value) === String(want.equals);
+            }
+            if (want.includes !== undefined) {
+                return String(value || '').toLowerCase()
+                    .includes(String(want.includes).toLowerCase());
+            }
+            return value !== undefined;
+        });
+        if (hit) continue;
+        if (want.equals !== undefined) {
+            lines.push(has(want.type) ?
+                'Click the value on a "' + acbBlockName(want.type) +
+                    '" block and type ' + want.equals + '.' :
+                'You need a "' + acbBlockName(want.type) +
+                    '" block set to ' + want.equals + '.');
+        } else if (want.includes !== undefined) {
+            lines.push('Change the text so it says "' +
+                want.includes + '".');
+        }
+    }
+    if (check.singleStack && facts.topStacks !== 1) {
+        lines.push('Snap all your blocks into ONE connected stack.');
+    }
+    if (check.output && lines.length === 0) {
+        const needles = [].concat(check.output.includes);
+        const unmet = needles.filter((n) => n !== undefined &&
+            !String(output).toLowerCase()
+                .includes(String(n).toLowerCase()));
+        if (unmet.length) {
+            lines.push(output ?
+                'Run again. The output still needs to show ' +
+                    unmet.map((m) => '"' + m + '"').join(' and ') + '.' :
+                'Your blocks look placed. Press "Run my code" so the ' +
+                    'output can be checked.');
+        }
+    }
+    if (!lines.length) {
+        lines.push('Everything for this step looks right. Press ' +
+            '"Run my code", then "Done, next step".');
+    }
+    return lines;
+}
+
 async function revealNextHint() {
     if (!acbTaskEngine || !acbTaskEngine.currentStep()) {
         coachSay('Pick a quest first, then I can give you step-by-step hints.');
         return;
     }
     if (acbHintBusy) return;  // a slow AI reply must not skip levels
+
+    // Direct help beats a riddle: when the step has an authored check,
+    // read the learner's actual workspace and say exactly what to fix.
+    // Every press re-reads the workspace, so the advice stays current.
+    const direct = acbStuckDiagnosis();
+    if (direct) {
+        acbTaskEngine.nextHint();       // keep help accounting honest
+        const display = 'Here is exactly what to do:\n' +
+            direct.map((l, i) => (i + 1) + '. ' + l).join('\n');
+        const newest = acbHintHistory[acbHintHistory.length - 1];
+        if (!newest || newest.display !== display) {
+            acbHintHistory.push({level: 3, display});
+        }
+        acbHintView = acbHintHistory.length - 1;
+        renderHintView();
+        return;
+    }
     acbHintBusy = true;
     const more = document.getElementById('coachHintMore');
     if (more) more.disabled = true;
