@@ -1595,10 +1595,14 @@ function setupQuests(workspace) {
             return;
         }
         if (!acbAiCoachAvailable) {
-            challengeStatus.textContent =
-                'The coach server is not running. Start it (see server/README.md) ' +
-                'to create custom challenges.';
-            return;
+            challengeStatus.textContent = 'Reaching the coach server…';
+            const ok = await acbCheckCoachHealth(5000);
+            if (!ok) {
+                challengeStatus.textContent = 'The coach server is not ' +
+                    'answering. If it was asleep it may need a minute - ' +
+                    'try once more.';
+                return;
+            }
         }
         challengeStatus.textContent =
             'Blox is designing your quest… (up to a minute)';
@@ -2196,7 +2200,7 @@ function setupQuests(workspace) {
 /* so the coach never shows a spinner or an error wall.                      */
 /* ------------------------------------------------------------------------ */
 
-const ACB_COACH_SERVER = (() => {
+let ACB_COACH_SERVER = (() => {
     try {
         return localStorage.getItem('acb.coachServer') ||
             window.FOCUSLY_COACH_URL || 'http://localhost:8124';
@@ -2206,6 +2210,45 @@ const ACB_COACH_SERVER = (() => {
 })();
 
 let acbAiCoachAvailable = false;
+
+/**
+ * Is the coach server reachable? Self-healing on two fronts: a page
+ * loaded while the server was asleep recovers on a later check, and a
+ * stale saved server URL falls back to the page default (adopting it
+ * and clearing the bad override when the default answers).
+ * @param {number=} timeoutMs Per-attempt cap.
+ * @returns {!Promise<boolean>}
+ */
+async function acbCheckCoachHealth(timeoutMs = 3000) {
+    const tryUrl = async (url) => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const r = await fetch(url + '/health',
+                {signal: controller.signal});
+            const h = await r.json();
+            return !!h.ok;
+        } catch (e) {
+            return false;
+        } finally {
+            clearTimeout(timer);
+        }
+    };
+    if (await tryUrl(ACB_COACH_SERVER)) {
+        acbAiCoachAvailable = true;
+        return true;
+    }
+    const fallback = window.FOCUSLY_COACH_URL || 'http://localhost:8124';
+    if (fallback !== ACB_COACH_SERVER && await tryUrl(fallback)) {
+        ACB_COACH_SERVER = fallback;
+        try { localStorage.removeItem('acb.coachServer'); }
+        catch (e) { /* fine */ }
+        acbAiCoachAvailable = true;
+        return true;
+    }
+    acbAiCoachAvailable = false;
+    return false;
+}
 let acbAiCoachEnabled = true;
 try { acbAiCoachEnabled = localStorage.getItem('acb.aiCoach') !== 'false'; }
 catch (e) { /* fine */ }
@@ -2227,10 +2270,11 @@ function setupAiCoach() {
         paint();
     });
     paint();
-    fetch(`${ACB_COACH_SERVER}/health`).then((r) => r.json()).then((h) => {
-        acbAiCoachAvailable = !!h.ok;
-        paint();
-    }).catch(() => { acbAiCoachAvailable = false; paint(); });
+    // Check now, and keep checking: a Render server waking from sleep
+    // (or one started after this page loaded) comes online without
+    // anyone needing to refresh.
+    acbCheckCoachHealth().then(paint);
+    setInterval(() => { acbCheckCoachHealth().then(paint); }, 30000);
 }
 
 /**
@@ -2643,8 +2687,15 @@ function setupCoachChat() {
         const message = input.value.trim();
         if (!message) return;
         if (!acbAiCoachAvailable) {
-            coachSay('Chat needs the coach server running; see server/README.md.');
-            return;
+            // One live retry before giving up - the server may just be
+            // waking, or came up after the page loaded.
+            coachThinking('Reaching Blox');
+            const ok = await acbCheckCoachHealth(5000);
+            if (!ok) {
+                coachSay('I could not reach the coach server. If it ' +
+                    'was asleep it may need a minute - try once more.');
+                return;
+            }
         }
         input.value = '';
         input.disabled = true;
