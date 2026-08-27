@@ -631,9 +631,23 @@ function setupFocusModeToggle() {
         }
     };
 
+    const openFocusAppWindow = () => {
+        try {
+            return window.open(window.location.href, 'acb-app-window',
+                `popup=yes,left=0,top=0,width=${screen.availWidth},` +
+                `height=${screen.availHeight}`);
+        } catch (e) {
+            return null;
+        }
+    };
+
     button.addEventListener('click', () => {
         const focusMode = getFocusMode();
-        if (focusMode) focusMode.toggle();
+        if (!focusMode) return;
+        if (!focusMode.enabled && window.name !== 'acb-app-window') {
+            window.acbFocusPendingWin = openFocusAppWindow();
+        }
+        focusMode.toggle();
     });
 
     document.addEventListener('acb-focus-mode-change', (event) => {
@@ -679,10 +693,21 @@ function setupFocusModeToggle() {
         if (enabled && !inAppWindow) {
             // Fill the whole monitor (minus the OS taskbar) so nothing else
             // is visible to pull attention away.
-            const win = window.open(window.location.href, 'acb-app-window',
-                `popup=yes,left=0,top=0,width=${screen.availWidth},` +
-                `height=${screen.availHeight}`);
-            if (!win) return;  // popup blocked; focus mode still works here
+            let win = (window.acbFocusPendingWin &&
+                !window.acbFocusPendingWin.closed) ?
+                window.acbFocusPendingWin : null;
+            window.acbFocusPendingWin = null;
+            if (!win) win = openFocusAppWindow();
+            if (!win) {
+                // Popup blocked; focus mode still works in this tab -
+                // but say so, instead of looking broken.
+                if (typeof showXpToast === 'function') {
+                    showXpToast('Pop-up blocked \u2014 allow pop-ups here ' +
+                        'to get the clean Focus window. Focusing in this ' +
+                        'tab instead.');
+                }
+                return;
+            }
             const overlay = document.createElement('div');
             overlay.className = 'handoff-overlay';
             overlay.innerHTML =
@@ -983,17 +1008,32 @@ function setupIoTabs() {
     const lang = document.getElementById('languageSelect');
     if (!outputButton || !codeButton || !outputPanel || !codePanel) return;
 
+    const animButton = document.getElementById('animTabButton');
+    const animPanel = document.getElementById('animTabPanel');
+
     const select = (which) => {
-        const output = which === 'output';
-        outputButton.setAttribute('aria-selected', String(output));
-        codeButton.setAttribute('aria-selected', String(!output));
-        outputPanel.hidden = !output;
-        codePanel.hidden = output;
-        if (lang) lang.hidden = output;
+        const tabs = [
+            ['output', outputButton, outputPanel],
+            ['code', codeButton, codePanel],
+            ['anim', animButton, animPanel],
+        ];
+        for (const [name, button, panel] of tabs) {
+            if (!button || !panel) continue;
+            const on = name === which;
+            button.setAttribute('aria-selected', String(on));
+            panel.hidden = !on;
+        }
+        if (lang) lang.hidden = which !== 'code';
+        // The animation deserves the column: the coach steps aside only
+        // while this tab is open, and returns on Output or Code.
+        document.body.classList.toggle('acb-anim-tab', which === 'anim');
     };
+    // The rocket stage (and future animated outputs) switch tabs too.
+    window.acbSelectIoTab = select;
 
     outputButton.addEventListener('click', () => select('output'));
     codeButton.addEventListener('click', () => select('code'));
+    animButton?.addEventListener('click', () => select('anim'));
 
     // Running a program is the moment the learner wants to see its result.
     document.getElementById('runButton')?.addEventListener('click', () => select('output'));
@@ -1052,6 +1092,11 @@ function setupRewards() {
 let acbTaskEngine = null;
 
 function coachSay(text) {
+    // A sparkle reply is the AI talking; remember when, so the idle
+    // nudge never talks over an answer the learner is still reading.
+    if (String(text).startsWith('\u2728')) {
+        window.acbAiAnswerAt = Date.now();
+    }
     const message = document.getElementById('coachMessage');
     if (!message) return;
     message.classList.remove('is-thinking');
@@ -1722,6 +1767,14 @@ function setupQuests(workspace) {
     });
 
     document.getElementById('nowCardStuck')?.addEventListener('click', () => {
+        // Blox answers in the coach card, and the Animation tab hides
+        // that card - so a click there would burn a hint invisibly.
+        // Come back to Output first, then let Blox respond in view.
+        const animTab = document.getElementById('animTabButton');
+        if (animTab?.getAttribute('aria-selected') === 'true' &&
+            typeof window.acbSelectIoTab === 'function') {
+            window.acbSelectIoTab('output');
+        }
         revealNextHint();
     });
 
@@ -1863,6 +1916,19 @@ function setupQuests(workspace) {
             (typeof acbReplay !== 'undefined' && acbReplay) ||
             (typeof acbWalk !== 'undefined' && acbWalk) ||
             (typeof acbStepSession !== 'undefined' && acbStepSession)) {
+            armNudge();
+            return;
+        }
+        // Reading one of Blox's answers is engagement, not idleness.
+        // Leave the reply on screen; try again later.
+        if (Date.now() - (window.acbAiAnswerAt || 0) < 120000) {
+            armNudge();
+            return;
+        }
+        // Watching the launch animation is engagement too: no pointing
+        // hand while the Animation tab is open or a flight is playing.
+        if (document.body.classList.contains('acb-anim-tab') ||
+            (typeof acbRocketBusy !== 'undefined' && acbRocketBusy)) {
             armNudge();
             return;
         }
@@ -2113,6 +2179,23 @@ async function aiCoach(mode, extra = {}, timeoutMs = 2500) {
             allowedBlocks: step ? step.blocks : [],
             authoredHints: step ? step.hints : [],
         } : null,
+        code: (() => {
+            try {
+                return String(javascript.javascriptGenerator
+                    .workspaceToCode(workspace)).slice(0, 700);
+            } catch (e) { return ''; }
+        })(),
+        gap: (() => {
+            try {
+                if (!step || !step.check ||
+                    typeof checkSatisfied !== 'function') return [];
+                const verdict = checkSatisfied(step.check,
+                    extractFacts(workspace),
+                    (typeof acbLastRunOutput === 'string') ?
+                        acbLastRunOutput : '');
+                return verdict.pass ? [] : verdict.missing.slice(0, 6);
+            } catch (e) { return []; }
+        })(),
         ...extra,
     };
     const controller = new AbortController();
@@ -2190,6 +2273,13 @@ function renderHintView() {
         more.hidden = true;
     }
     hints.hidden = false;
+    // A hint nobody sees is a hint wasted: with the box fully laid out
+    // (text AND buttons), scroll its bottom edge into view. Instant and
+    // direct - smooth scrolls cancel each other, and rAF callbacks never
+    // fire in a backgrounded tab.
+    try {
+        hints.scrollIntoView({block: 'end'});
+    } catch (e) { /* fine */ }
 }
 
 async function revealNextHint() {
@@ -2727,6 +2817,14 @@ function setupThemeToggle() {
         button.setAttribute('aria-label', `Switch theme, current theme ${label}`);
     };
 
+    // The theme covers the WHOLE environment, not just the Blockly
+    // canvas: a body class drives the page-wide palette in main.css.
+    const paintBody = (name) => {
+        for (const t of ['calm', 'dark', 'contrast']) {
+            document.body.classList.toggle('acb-theme-' + t, name === t);
+        }
+    };
+
     button.addEventListener('click', () => {
         const switcher = getThemeSwitcher();
         if (switcher) switcher.cycle();
@@ -2734,11 +2832,15 @@ function setupThemeToggle() {
 
     document.addEventListener('acb-theme-change', (event) => {
         if (event.detail?.label) paint(event.detail.label);
+        if (event.detail?.theme) paintBody(event.detail.theme);
     });
 
     // The plugin may have restored a remembered theme during addWorkspace.
     const switcher = getThemeSwitcher();
-    if (switcher) paint(THEME_LABELS[switcher.getThemeName()]);
+    if (switcher) {
+        paint(THEME_LABELS[switcher.getThemeName()]);
+        paintBody(switcher.getThemeName());
+    }
 }
 
 /**

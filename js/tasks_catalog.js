@@ -199,15 +199,17 @@ const ACB_TASKS = [
       },
     ],
   },
+  // ---------------------------------------------------------------- advanced
   {
     id: 'countdown',
-    level: 'intermediate',
-    xp: 150,
+    level: 'advanced',
+    xp: 200,
     title: 'Rocket countdown',
     quest: 'Count down from 10 and lift off',
     steps: [
       {
-        text: 'Set fuel to 10, then repeat 10 times.',
+        text: 'Create a variable called fuel. Set fuel to 10, then ' +
+            'repeat 10 times.',
         blocks: ['variables_set', 'math_number', 'controls_repeat_ext'],
         hints: [
           'Countdowns start full and drain to zero.',
@@ -216,7 +218,8 @@ const ACB_TASKS = [
         ],
       },
       {
-        text: 'Inside: print fuel, then change fuel by -1.',
+        text: 'Inside the loop: print fuel, then change fuel so the ' +
+            'count goes DOWN each time round.',
         blocks: ['controls_repeat_ext', 'text_print', 'variables_get',
                  'math_change', 'math_number'],
         hints: [
@@ -236,7 +239,6 @@ const ACB_TASKS = [
       },
     ],
   },
-  // ---------------------------------------------------------------- advanced
   {
     id: 'fizzbuzz',
     level: 'advanced',
@@ -446,8 +448,11 @@ const ACB_TASK_CHECKS = {
   'countdown': [
     {blocks: [{type: 'variables_set'}, {type: 'controls_repeat_ext'}],
      fields: [{type: 'math_number', name: 'NUM', equals: '10'}]},
+    // The -1 matters: a change block dragged in still reading its
+    // default 1 counts UP, so the step must not pass until it is -1.
     {within: [{child: 'text_print', of: 'controls_repeat_ext'},
-              {child: 'math_change', of: 'controls_repeat_ext'}]},
+              {child: 'math_change', of: 'controls_repeat_ext'}],
+     fields: [{type: 'math_number', name: 'NUM', equals: '-1'}]},
     {blocks: [{type: 'text_print', count: 2}],
      output: {includes: ['10', '1', 'lift off']}},
   ],

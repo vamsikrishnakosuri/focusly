@@ -34,6 +34,10 @@ function setBreakSound(kind) {
     }
 }
 
+/** A break the learner started by hand (no timer involved):
+ *  {startedAt, endsAt: number|null, pausedTimer: boolean}. */
+let acbManualBreak = null;
+
 function breakSceneClose(endBreakToo) {
     if (!acbBreakScene) return;
     clearInterval(acbBreakScene.tick);
@@ -45,6 +49,17 @@ function breakSceneClose(endBreakToo) {
     // Break sound off; the learner's everyday ambience comes back.
     if (typeof acbAmbient !== 'undefined' && typeof acbProfile === 'function') {
         acbAmbient.apply(acbProfile());
+    }
+    if (acbManualBreak) {
+        if (acbManualBreak.pausedTimer &&
+            typeof getBreakTimer === 'function') {
+            const timer = getBreakTimer();
+            if (timer && typeof timer.resumeTimer === 'function') {
+                timer.resumeTimer();
+            }
+        }
+        acbManualBreak = null;
+        return;  // no timer bookkeeping: the timer never entered break
     }
     if (endBreakToo) {
         // The plugin's own button does the bookkeeping when present.
@@ -92,6 +107,17 @@ function breakSceneShow() {
                     'type="button" title="Blox searches free CC0 sounds ' +
                     'online">✨ More sounds</button>' +
             '</div>' +
+            '<div class="break-scene__lengths" id="breakLengths" hidden ' +
+                'role="group" aria-label="Break length">' +
+                '<button class="coach-chip" data-break-len="0" ' +
+                    'type="button">Just a pause</button>' +
+                '<button class="coach-chip" data-break-len="3" ' +
+                    'type="button">3 min</button>' +
+                '<button class="coach-chip" data-break-len="5" ' +
+                    'type="button">5 min</button>' +
+                '<button class="coach-chip" data-break-len="10" ' +
+                    'type="button">10 min</button>' +
+            '</div>' +
             '<div class="break-scene__online" id="breakOnline" hidden>' +
                 '<input id="breakSoundQuery" type="text" maxlength="40" ' +
                     'placeholder="thunderstorm, stream, night birds…" ' +
@@ -112,6 +138,16 @@ function breakSceneShow() {
         button.addEventListener('click',
             () => setBreakSound(button.dataset.breakSound));
     });
+    el.querySelectorAll('[data-break-len]').forEach((button) => {
+        button.addEventListener('click', () => {
+            if (!acbManualBreak) return;
+            const minutes = Number(button.dataset.breakLen) || 0;
+            acbManualBreak.endsAt = minutes ?
+                Date.now() + minutes * 60000 : null;
+            el.querySelectorAll('[data-break-len]').forEach((b) =>
+                b.classList.toggle('is-active', b === button));
+        });
+    });
     breakOnlineSetup(el);
     document.addEventListener('keydown', breakSceneEsc, true);
 
@@ -120,11 +156,25 @@ function breakSceneShow() {
         if (acbBreakScene && acbBreakScene.extending) return;
         const timer = (typeof getBreakTimer === 'function') &&
             getBreakTimer();
-        if (!timer || timer.getStateName() !== 'break') {
+        const timerOnBreak = timer && timer.getStateName() === 'break';
+        if (!timerOnBreak && !acbManualBreak) {
             breakSceneClose(false);
             return;
         }
-        const ms = Math.max(0, timer.remainingMs());
+        let ms;
+        if (timerOnBreak) {
+            ms = Math.max(0, timer.remainingMs());
+        } else if (acbManualBreak.endsAt) {
+            ms = acbManualBreak.endsAt - Date.now();
+            if (ms <= 0) {
+                breakSceneClose(false);
+                return;
+            }
+        } else {
+            // Open-ended pause: count up, so time stays visible without
+            // the pressure of a deadline.
+            ms = Date.now() - acbManualBreak.startedAt;
+        }
         const h = Math.floor(ms / 3600000);
         const m = Math.floor((ms % 3600000) / 60000);
         const s = Math.floor((ms % 60000) / 1000);
@@ -263,7 +313,25 @@ function breakExtendOffer() {
     }, 25000);
 }
 
+function breakSceneManualStart() {
+    if (acbBreakScene) return;
+    const timer = (typeof getBreakTimer === 'function') && getBreakTimer();
+    acbManualBreak = {startedAt: Date.now(), endsAt: null,
+        pausedTimer: false};
+    if (timer && timer.getStateName() === 'working' &&
+        typeof timer.pauseTimer === 'function' &&
+        !(typeof timer.isPaused === 'function' && timer.isPaused())) {
+        timer.pauseTimer();
+        acbManualBreak.pausedTimer = true;
+    }
+    breakSceneShow();
+    const lengths = document.getElementById('breakLengths');
+    if (lengths) lengths.hidden = false;
+}
+
 function setupBreakScene() {
+    document.getElementById('breakNowButton')?.addEventListener(
+        'click', breakSceneManualStart);
     document.addEventListener('acb-break-timer', (event) => {
         const action = event.detail && event.detail.action;
         if (action === 'break-started') breakSceneShow();

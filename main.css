@@ -2775,9 +2775,130 @@ select, option, select:focus, option:hover, button {
     --acb-text-scale: 1;
 }
 
+/* The scale must live on html: nearly every component sizes its text
+   in rem, and rem reads the ROOT font size. (On body it changed
+   almost nothing - the old larger-text bug.) */
+html {
+    font-size: calc(100% * var(--acb-text-scale));
+}
+
+/* Blockly sizes the toolbox labels in fixed pixels; rem brings them
+   into the same text-size system as the rest of the page. (Block text
+   itself stays with Blockly's zoom - resizing it under Blockly's feet
+   breaks block layout measurements.) */
+.blocklyTreeLabel {
+    font-size: 1rem !important;
+}
+.blocklyTreeRow {
+    height: auto !important;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
 body {
     letter-spacing: var(--acb-letter-spacing);
-    font-size: calc(1rem * var(--acb-text-scale));
+}
+
+/* ================================================================== */
+/* Whole-environment themes: the switcher's body class recolours the   */
+/* page palette, so cards, panels and text follow the canvas theme.    */
+/* ================================================================== */
+
+body.acb-theme-calm {
+    --acb-page-bg: #eceae4;
+    --acb-card-bg: #f6f4ef;
+    --acb-card-border: #d8d4c9;
+    --acb-ink: #3a3f46;
+    --acb-ink-soft: #6b7078;
+    --acb-green: #5f8a7a;
+    --acb-green-dark: #4c7263;
+    --acb-mint: #e4ebe7;
+    --acb-mint-ink: #435e53;
+}
+
+body.acb-theme-dark {
+    --acb-page-bg: #14181e;
+    --acb-card-bg: #1e242c;
+    --acb-card-border: #323a45;
+    --acb-ink: #dbe2ec;
+    --acb-ink-soft: #97a1ae;
+    --acb-mint: #24352d;
+    --acb-mint-ink: #8fd0b5;
+    --acb-amber-bg: #37301a;
+    --acb-amber-ink: #e8c66a;
+    --acb-shadow: 0 1px 2px rgba(0, 0, 0, 0.4),
+        0 4px 14px rgba(0, 0, 0, 0.5);
+}
+body.acb-theme-dark .io-tab:hover { background: #2a323d; }
+body.acb-theme-dark .io-panel > pre { color: #dbe2ec; }
+/* Light-on-light traps: surfaces hardcoded to cream go dark so the
+   themed ink stays readable on them. */
+body.acb-theme-dark .coach-card__message,
+body.acb-theme-dark .quest-bar,
+body.acb-theme-dark .chip:hover,
+body.acb-theme-dark .map-node:hover,
+body.acb-theme-dark .help-dot,
+body.acb-theme-dark .focus-button,
+body.acb-theme-dark .settings-dropdown,
+body.acb-theme-dark .keyboard-hints,
+body.acb-theme-dark .kbd-head {
+    background: #262d36;
+    color: var(--acb-ink);
+}
+body.acb-theme-dark .coach-card__avatar { background: #262d36; }
+body.acb-theme-dark .settings-item { color: #dbe2ec; }
+body.acb-theme-dark .settings-item:hover { background: #323b47; }
+body.acb-theme-dark .settings-dropdown { border-color: #3d4652; }
+body.acb-theme-dark select,
+body.acb-theme-dark input,
+body.acb-theme-dark textarea {
+    background: #262d36;
+    color: #dbe2ec;
+    border-color: #3d4652;
+}
+body.acb-theme-dark .coach-chip {
+    background: #262d36;
+    color: #dbe2ec;
+    border-color: #3d4652;
+}
+
+body.acb-theme-contrast {
+    --acb-page-bg: #ffffff;
+    --acb-card-bg: #ffffff;
+    --acb-card-border: #000000;
+    --acb-ink: #000000;
+    --acb-ink-soft: #1a1a1a;
+    --acb-green: #005a2b;
+    --acb-green-dark: #00461f;
+    --acb-mint: #ffffff;
+    --acb-mint-ink: #005a2b;
+    --acb-amber-bg: #fff8dd;
+    --acb-amber-ink: #4d3800;
+    --acb-shadow: none;
+}
+body.acb-theme-contrast .io-card,
+body.acb-theme-contrast .coach-card,
+body.acb-theme-contrast .now-card {
+    border-width: 2px;
+}
+body.acb-theme-contrast .io-tab {
+    color: #000000;
+    border: 2px solid #000000;
+}
+body.acb-theme-contrast .io-tab[aria-selected="true"] {
+    background: #000000;
+    color: #ffffff;
+}
+body.acb-theme-contrast .coach-chip {
+    border: 2px solid #000000;
+    color: #000000;
+    background: #ffffff;
+}
+body.acb-theme-contrast button:focus-visible,
+body.acb-theme-contrast select:focus-visible,
+body.acb-theme-contrast input:focus-visible {
+    outline: 3px solid #0000ee;
+    outline-offset: 2px;
 }
 
 .pref-row {
@@ -3723,3 +3844,541 @@ body.acb-focus-mode .micro-quit { visibility: visible; }
 }
 .plan-toggle { font-size: 14px; }
 body.acb-focus-mode .plan-toggle { visibility: visible; }
+
+
+/* --- Manual break: length chips --- */
+.break-scene__lengths {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.break-scene__lengths .coach-chip.is-active {
+    background: #1a936f;
+    color: #fff;
+    border-color: #1a936f;
+}
+
+
+/* --- Rocket launch stage --- */
+.rocket-stage {
+    border-radius: 14px;
+    overflow: hidden;
+    background: #0b1226;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    margin: 0 0 12px;
+}
+
+.rocket-stage__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.rocket-stage__toolbar .coach-chip { padding: 3px 10px; font-size: 12px; }
+
+.rocket-stage__speedlabel {
+    color: #9fb2d8;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.rocket-stage__toolbar .coach-chip.is-active {
+    background: #1a936f;
+    color: #fff;
+    border-color: #1a936f;
+}
+
+.rocket-stage__close { margin-left: auto; }
+
+/* The view is a window onto a world twice its height: launch site in
+   the lower half, open space above. Liftoff slides the world down. */
+.rocket-stage__view {
+    position: relative;
+    height: 250px;
+    overflow: hidden;
+}
+
+/* The Animation tab owns the whole card: the stage stretches to fill
+   whatever height the column gives it. */
+.io-panel--anim {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+/* display:flex above would defeat the hidden attribute, so restate it:
+   when another tab is selected this panel must actually disappear. */
+.io-panel--anim[hidden] { display: none; }
+.io-panel--anim .rocket-stage {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.io-panel--anim .rocket-stage__view {
+    flex: 1;
+    height: auto;
+    min-height: 220px;
+}
+
+.rocket-stage__tabnote {
+    margin-left: auto;
+    color: #9fb2d8;
+    font-size: 11px;
+}
+
+/* Engine glow washing over the pad at ignition. */
+.rk-glow {
+    position: absolute;
+    left: 50%;
+    bottom: -30px;
+    width: 200px;
+    height: 110px;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(closest-side,
+        rgba(255, 190, 90, 0.55), rgba(255, 140, 60, 0.22) 55%,
+        transparent);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    filter: blur(6px);
+}
+.rk-glow.is-lit { opacity: 1; }
+.rk-has-art .rk-glow { bottom: 16%; left: 65.5%; }
+
+.rk-world {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 200%;
+    display: flex;
+    flex-direction: column;
+    /* A real ascent: the ground takes ~13s to fall away, starting slow
+       and gathering speed, matched to the altitude readout's pace. */
+    transition: transform 13s cubic-bezier(0.5, 0, 0.75, 0.6);
+}
+
+.rk-world.rk-launching { transform: translateY(50%); }
+/* Fast mode: the whole world falls away in step with the shorter
+   altitude readout. */
+.rk-fast .rk-world { transition-duration: 7s; }
+.rocket-stage.rk-minimal .rk-world { transition-duration: 5s; }
+
+.rk-space {
+    flex: 1;
+    background:
+        radial-gradient(1.5px 1.5px at 12% 20%, #fff, transparent),
+        radial-gradient(2px 2px at 30% 55%, #cfe0ff, transparent),
+        radial-gradient(1.5px 1.5px at 48% 30%, #fff, transparent),
+        radial-gradient(2px 2px at 63% 70%, #ffe9c9, transparent),
+        radial-gradient(1.5px 1.5px at 78% 25%, #fff, transparent),
+        radial-gradient(2px 2px at 88% 60%, #cfe0ff, transparent),
+        radial-gradient(1.5px 1.5px at 22% 82%, #fff, transparent),
+        radial-gradient(1.5px 1.5px at 55% 90%, #fff, transparent),
+        linear-gradient(#030614 0%, #0a1430 55%, #16305e 100%);
+}
+
+.rk-site {
+    height: 50%;
+    position: relative;
+    background: linear-gradient(#5f9fd8 0%, #9cc6e8 100%);
+}
+
+.rk-site-img,
+.rk-site-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center bottom;
+}
+
+/* The rocket rides above the world layers. */
+.rk-ship-slot {
+    position: absolute;
+    left: 50%;
+    bottom: 10px;
+    width: 74px;
+    transform: translateX(-50%);
+    transition: transform 0.9s ease, left 3s ease;
+    pointer-events: none;
+    z-index: 3;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
+}
+
+/* When custom art is present, the rocket stands at the art's tower. */
+.rk-has-art .rk-ship-slot { left: 65.5%; bottom: 24%; width: 8.5%; }
+
+/* During the cruise the ship glides to the middle of the window. */
+.rk-ship-slot.rk-center,
+.rk-has-art .rk-ship-slot.rk-center { left: 50%; }
+
+/* Anchor the cover-crop to the pad painted at 65.5% / 76% in the art,
+   so the rocket sits on it at every panel size. A percentage
+   object-position maps that image point to the same point of the box. */
+.rk-has-art .rk-site-img { object-position: 65.5% 76%; }
+
+/* Real starfield with the Moon waiting at the top: the world scroll
+   carries the rocket up into this during the climb. */
+.rk-has-art .rk-space {
+    background: #050810 url('img/rocket/space.png') center top / cover
+        no-repeat;
+}
+
+/* After departure the ship is truly gone, not hovering at the top. */
+.rk-ship-slot.rk-gone { opacity: 0; transition: opacity 1s ease; }
+
+/* The mission banner: takes the middle of the sky once the ship has
+   left the screen. */
+.rk-mission {
+    position: absolute;
+    top: 44%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ffd35e;
+    font-size: clamp(20px, 6vw, 34px);
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    text-align: center;
+    text-shadow: 0 0 18px rgba(255, 190, 80, 0.55),
+        0 2px 6px rgba(0, 0, 0, 0.8);
+    opacity: 0;
+    z-index: 4;
+    animation: rk-mission-in 1.4s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+    pointer-events: none;
+}
+/* Rising out of the rocket's exhaust path as the ship crosses the top. */
+@keyframes rk-mission-in {
+    from {
+        opacity: 0;
+        top: 70%;
+        transform: translate(-50%, -50%) scale(0.55);
+    }
+    35% { opacity: 1; }
+    to {
+        opacity: 1;
+        top: 44%;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+.rk-minimal .rk-mission { animation: none; opacity: 1; }
+
+/* The crash verdict: same weight, alarm red, no rise (the rocket is
+   on the ground in pieces - the text just lands). */
+.rk-mission--fail {
+    color: #ff7b6e;
+    text-shadow: 0 0 18px rgba(255, 90, 70, 0.5),
+        0 2px 6px rgba(0, 0, 0, 0.8);
+    animation: rk-mission-fail-in 0.9s ease forwards;
+}
+@keyframes rk-mission-fail-in {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(1.25); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Countdown finished but nothing was said: amber, not red - the rocket
+   is fine, it is just waiting for its command. */
+.rk-mission--warn {
+    color: #ffc46b;
+    font-size: clamp(16px, 4.6vw, 26px);
+    text-shadow: 0 0 16px rgba(255, 180, 90, 0.45),
+        0 2px 6px rgba(0, 0, 0, 0.8);
+    animation: rk-mission-fail-in 0.9s ease forwards;
+}
+
+/* Small sound toggle, bottom-right of the stage view. */
+.rk-sound {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 16, 40, 0.65);
+    color: #cfd9f2;
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.rk-sound:hover { background: rgba(30, 40, 80, 0.85); }
+.rk-sound[aria-pressed="true"] {
+    color: #ffd35e;
+    border-color: rgba(255, 211, 94, 0.6);
+}
+
+/* Cruise phase: an endless belt of stars rolling past the window.
+   The element is two tile-heights tall and slides down one tile per
+   loop, so the wrap is seamless. */
+.rk-cruise-stars {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -100%;
+    height: 200%;
+    background: url('img/rocket/stars.png') repeat;
+    background-size: 100% 50%;
+    opacity: 0;
+    transition: opacity 1.4s ease;
+    animation: rk-cruise-scroll 9s linear infinite;
+    pointer-events: none;
+}
+.rk-cruise-stars.is-on { opacity: 1; }
+@keyframes rk-cruise-scroll {
+    from { transform: translateY(0); }
+    to { transform: translateY(50%); }
+}
+
+/* Distant planets and satellites: born fully inside the view, they
+   fade in, drift a little, and fade out - never sliced by an edge. */
+.rk-drifter {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    filter: saturate(0.85) brightness(0.88);
+    animation-name: rk-drift-far;
+    animation-timing-function: ease-in-out;
+    animation-fill-mode: forwards;
+}
+@keyframes rk-drift-far {
+    /* Straight down and nothing else: no scaling, no sideways motion.
+       The steady sink is the parallax that says the rocket is rising. */
+    0% { opacity: 0; transform: translateY(0); }
+    15% { opacity: 0.85; }
+    82% { opacity: 0.85; }
+    100% { opacity: 0; transform: translateY(var(--fall, 140px)); }
+}
+
+.rk-ship { display: block; width: 100%; height: auto; }
+
+.rk-flame {
+    animation: rk-flicker 0.1s infinite alternate;
+    transform-origin: 60px 196px;
+}
+@keyframes rk-flicker {
+    from { transform: scaleY(1); }
+    to { transform: scaleY(1.4) scaleX(0.88); }
+}
+.rocket-stage.rk-minimal .rk-flame { animation: none; }
+
+.rk-shaking { animation: rk-shake 0.08s infinite; }
+@keyframes rk-shake {
+    0% { transform: translateX(calc(-50% + 1px)); }
+    50% { transform: translateX(calc(-50% - 1px)) translateY(0.6px); }
+    100% { transform: translateX(calc(-50% + 0.5px)) translateY(-0.6px); }
+}
+
+.rk-riding { transform: translateX(-50%) translateY(-34px); }
+
+.rk-riding.rk-departing {
+    /* A keyframe animation, not a transition, so nothing can interrupt
+       it - and the distance is measured in screen heights, so the ship
+       ALWAYS crosses the top edge and keeps going, never fading out or
+       stopping mid-air. */
+    animation: rk-depart 2.4s cubic-bezier(0.5, 0, 0.85, 0.6) forwards;
+}
+@keyframes rk-depart {
+    from { transform: translateX(-50%) translateY(-34px); }
+    to { transform: translateX(-50%) translateY(-170vh); }
+}
+
+.rk-hopping { animation: rk-hop 1.3s ease; }
+@keyframes rk-hop {
+    0% { transform: translateX(-50%) translateY(0); }
+    35% { transform: translateX(-50%) translateY(-24px); }
+    70% { transform: translateX(-50%) translateY(2px); }
+    100% { transform: translateX(-50%) translateY(0); }
+}
+
+.rk-tipping {
+    transform: translateX(-50%) rotate(15deg) translateY(4px);
+    transform-origin: 50% 92%;
+    transition: transform 1s ease-in;
+}
+
+/* Exhaust smoke: soft blurred billows at the pad. */
+.rk-smoke {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.rk-puffball {
+    position: absolute;
+    bottom: 2px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 32%,
+        rgba(255, 255, 255, 0.95), rgba(205, 212, 226, 0.6) 55%,
+        rgba(160, 170, 190, 0.25) 80%, transparent);
+    filter: blur(2.5px);
+    animation: rk-billow 2.4s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
+}
+
+.rk-puffball--big { width: 44px; height: 44px; }
+
+@keyframes rk-billow {
+    30% { opacity: 1; }
+    to {
+        transform: translate(-20px, -30px) scale(3);
+        opacity: 0;
+    }
+}
+
+.rk-puffball--left { animation-name: rk-billow-left; }
+@keyframes rk-billow-left {
+    25% { opacity: 1; }
+    to {
+        transform: translate(-95px, -10px) scale(3.4);
+        opacity: 0;
+    }
+}
+
+.rk-puffball--right { animation-name: rk-billow-right; }
+@keyframes rk-billow-right {
+    25% { opacity: 1; }
+    to {
+        transform: translate(95px, -10px) scale(3.4);
+        opacity: 0;
+    }
+}
+
+.rk-has-art .rk-puffball { bottom: 22%; left: 60%; }
+
+.rk-steam {
+    position: absolute;
+    bottom: 6px;
+    width: 9px;
+    height: 26px;
+    border-radius: 50%;
+    background: linear-gradient(rgba(255, 255, 255, 0),
+        rgba(255, 255, 255, 0.55));
+    filter: blur(3px);
+    animation: rk-steam-rise 2.4s ease-out forwards;
+}
+@keyframes rk-steam-rise {
+    30% { opacity: 0.7; }
+    to {
+        /* Straight up from the nozzle - no sideways wander. */
+        transform: translateY(-52px) scale(1.6);
+        opacity: 0;
+    }
+}
+.rk-has-art .rk-steam { bottom: 24%; }
+.rk-has-art .rk-puffball { bottom: 22%; }
+
+/* Photographic smoke bank rolling over the pad at ignition (art mode).
+   It lives inside .rk-site so it scrolls away with the ground, and it
+   grows from its bottom edge so it never lifts off the floor. */
+.rk-smoke-art {
+    position: absolute;
+    left: 50%;
+    bottom: 4%;
+    width: 135%;
+    height: 44%;
+    transform: translateX(-50%);
+    transform-origin: 50% 100%;
+    background: url('img/rocket/smoke.png') center bottom / 100% 100%
+        no-repeat;
+    opacity: 0;
+    pointer-events: none;
+    animation: rk-smoke-art 5.6s ease-out forwards;
+}
+@keyframes rk-smoke-art {
+    12% { opacity: 0.95; }
+    55% { opacity: 0.85; transform: translateX(-50%) scale(1.3); }
+    to { opacity: 0; transform: translateX(-50%) scale(1.65); }
+}
+
+/* Exhaust plume attached under the climbing rocket. */
+.rk-trail {
+    position: absolute;
+    top: 92%;
+    left: 50%;
+    width: 34%;
+    height: 260%;
+    transform: translateX(-50%);
+    border-radius: 45%;
+    background: linear-gradient(to bottom,
+        rgba(255, 244, 214, 0.95),
+        rgba(255, 255, 255, 0.75) 18%,
+        rgba(255, 255, 255, 0.4) 45%,
+        rgba(255, 255, 255, 0) 85%);
+    filter: blur(4px);
+    pointer-events: none;
+    animation: rk-trail-flicker 0.14s infinite alternate;
+}
+@keyframes rk-trail-flicker {
+    from { transform: translateX(-50%) scaleY(1); opacity: 0.95; }
+    to { transform: translateX(-52%) scaleY(1.08); opacity: 0.8; }
+}
+
+/* Cloud streaks past the window while climbing. */
+.rk-streaks { position: absolute; inset: 0; pointer-events: none; }
+
+.rk-streak {
+    position: absolute;
+    top: -50px;
+    width: 12px;
+    height: 34px;
+    border-radius: 8px;
+    background: linear-gradient(rgba(255, 255, 255, 0.9),
+        rgba(255, 255, 255, 0));
+    filter: blur(2px);
+    animation: rk-streak-fall 1s linear forwards;
+}
+@keyframes rk-streak-fall {
+    to { transform: translateY(340px) scaleY(1.8); }
+}
+
+/* While the Animation tab is open, give it the whole right column:
+   the coach steps aside AND the card sheds its 34% height cap. */
+.acb-anim-tab #coachCard { display: none; }
+.acb-anim-tab .execution-panel .io-card { flex: 1 1 auto; }
+
+.rocket-stage__counter {
+    font-family: 'Courier New', monospace;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-align: center;
+    color: #6ef3a5;
+    background: #050a14;
+    border-top: 1px solid rgba(110, 243, 165, 0.35);
+    border-bottom: 1px solid rgba(110, 243, 165, 0.35);
+    padding: 5px 0;
+    text-shadow: 0 0 14px rgba(110, 243, 165, 0.5);
+}
+
+.rocket-stage__counter.is-bad {
+    color: #ff7b7b;
+    border-color: rgba(255, 123, 123, 0.45);
+    text-shadow: 0 0 14px rgba(255, 123, 123, 0.5);
+    animation: rk-bad-blink 0.4s 3;
+}
+@keyframes rk-bad-blink { 50% { opacity: 0.25; } }
+
+.rocket-stage__counter.is-go { color: #ffe082; }
+
+.rocket-stage__caption {
+    color: #d7e0f2;
+    font-size: 13px;
+    text-align: center;
+    margin: 8px 10px 10px;
+    min-height: 2.4em;
+}

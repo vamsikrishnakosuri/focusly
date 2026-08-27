@@ -54,6 +54,7 @@
     <script src="./js/frustration.js"></script>
     <script src="./js/bests.js"></script>
     <script src="./js/focus_view.js"></script>
+    <script src="./js/rocket_stage.js"></script>
 </head>
 <body onload="initWorkspace()">
   <div id="root">
@@ -94,6 +95,9 @@
                 <span class="mini-switch" aria-hidden="true"></span>
                 <span class="chip__label">Focus</span>
             </button>
+            <button id="breakNowButton" class="chip chip--icon" type="button"
+                    title="Take a break now"
+                    aria-label="Take a break now">🌿</button>
             <div class="timer-menu">
                 <button id="breakTimerChip" class="chip chip--timer" type="button"
                         aria-haspopup="true" aria-expanded="false"
@@ -356,6 +360,10 @@
                             role="tab" aria-selected="false" aria-controls="codeTabPanel">
                         Code
                     </button>
+                    <button id="animTabButton" class="io-tab" type="button"
+                            role="tab" aria-selected="false" aria-controls="animTabPanel" hidden>
+                        Animation
+                    </button>
                     <label class="sr-only" for="languageSelect">Language</label>
                     <select id="languageSelect" class="program-dropdown program-dropdown--sm io-tabs__lang" hidden>
                         <option value="javascript">JavaScript</option>
@@ -384,6 +392,7 @@
                         <!-- Output lines will be appended here dynamically -->
                     </div>
                 </div>
+                <div id="animTabPanel" class="io-panel io-panel--anim" role="tabpanel" aria-labelledby="animTabButton" hidden></div>
                 <div id="codeTabPanel" class="io-panel io-panel--code" role="tabpanel" aria-labelledby="codeTabButton" hidden>
                     <div class="code-toolbar">
                         <button id="codeEditButton" class="coach-chip" type="button"
@@ -529,6 +538,7 @@
                         <button class="coach-chip" data-pref="spacing:roomy" type="button">Roomy spacing</button>
                         <button class="coach-chip" data-pref="textSize:normal" type="button">Normal size</button>
                         <button class="coach-chip" data-pref="textSize:large" type="button">Larger text</button>
+                        <button class="coach-chip" data-pref="textSize:xlarge" type="button">Extra large</button>
                     </div>
                 </section>
                 <section class="map-island"><h3>Motion <button class="pref-info" type="button" aria-label="What does this do?" aria-expanded="false">&#9432;</button></h3><p class="pref-info__text" hidden>Playful keeps spins, hops, and confetti. Minimal turns all of that off and keeps only calm highlights, if animations distract or overwhelm you.</p>

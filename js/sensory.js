@@ -22,7 +22,7 @@
 const ACB_PROFILE_DEFAULTS = {
     font: 'nunito',        // nunito | lexend | dyslexic
     spacing: 'normal',     // normal | roomy
-    textSize: 'normal',    // normal | large
+    textSize: 'normal',    // normal | large | xlarge
     motion: 'full',        // full | minimal
     tone: 'warm',          // warm | brief
     ambient: 'off',        // off | white | pink | brown
@@ -74,7 +74,8 @@ function applyProfile(profile) {
     document.documentElement.style.setProperty('--acb-letter-spacing',
         p.spacing === 'roomy' ? '0.045em' : 'normal');
     document.documentElement.style.setProperty('--acb-text-scale',
-        p.textSize === 'large' ? '1.12' : '1');
+        p.textSize === 'xlarge' ? '1.3' :
+        p.textSize === 'large' ? '1.15' : '1');
     document.body.classList.toggle('acb-no-motion', p.motion === 'minimal');
     if (typeof applyCompanion === 'function') applyCompanion(p);
     // Ambient + tone are read live by their consumers.
