@@ -90,17 +90,15 @@
             </span>
             <div class="timer-menu">
                 <button id="focusModeToggle" class="chip chip--switch" type="button"
-                        aria-pressed="false"
-                        title="Focus mode (Ctrl+Shift+F)"
-                        aria-label="Turn focus mode on">
-                    <span class="mini-switch" aria-hidden="true"></span>
-                    <span class="chip__label">Focus</span>
-                </button>
-                <button id="focusSettingsButton" class="chip chip--icon" type="button"
                         aria-haspopup="true" aria-expanded="false"
                         aria-controls="focusSettingsDropdown"
-                        title="Focus Mode settings"
-                        aria-label="Focus Mode settings">◎</button>
+                        title="Focus mode - click the switch to turn on (Ctrl+Shift+F), click the pill for settings">
+                    <span id="focusModeSwitch" class="mini-switch" role="switch"
+                          aria-checked="false" tabindex="0"
+                          aria-label="Focus mode on or off"></span>
+                    <span class="chip__label">Focus</span>
+                    <i class="fas fa-gear chip__gear" aria-hidden="true"></i>
+                </button>
                 <div id="focusSettingsDropdown" class="settings-dropdown timer-dropdown"
                      role="group" aria-label="Focus Mode settings" hidden>
                     <p class="timer-dropdown__title">In Focus Mode, keep showing:</p>

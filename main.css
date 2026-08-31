@@ -1966,6 +1966,18 @@ body.acb-now-dock #blocklyDiv {
 /* Direct help arrives as a numbered list; keep the line breaks. */
 #coachHintText { white-space: pre-line; }
 
+/* Automatic hints switched off: the quest-steps card and hints card
+   leave the screen. An explicitly requested answer still shows. */
+body.acb-no-autohints #coachChecklist { display: none; }
+body.acb-no-autohints #coachHints:not(.is-explicit) { display: none; }
+
+/* Small gear inside the Focus pill: "settings live here". */
+.chip__gear {
+    font-size: 10px;
+    opacity: 0.6;
+    margin-left: 2px;
+}
+
 .now-card__kicker {
     margin: 0 0 4px;
     font-size: 0.74rem;

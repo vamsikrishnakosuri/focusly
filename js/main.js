@@ -210,6 +210,14 @@ function initWorkspace() {
         if (label) {
             label.textContent = 'Automatic hints (' + (on ? 'on' : 'off') + ')';
         }
+        // Off means OFF on screen too: the quest-steps card and the
+        // hints card disappear. Asking with "I'm stuck" still answers,
+        // marked explicit so the answer shows through.
+        document.body.classList.toggle('acb-no-autohints', !on);
+        if (!on) {
+            document.getElementById('coachHints')
+                ?.classList.remove('is-explicit');
+        }
     };
     hintsToggle?.addEventListener('click', () => {
         try {
@@ -645,11 +653,11 @@ function setupFocusModeToggle() {
 
     const paint = (enabled) => {
         button.setAttribute('aria-pressed', String(enabled));
-        button.setAttribute(
-            'aria-label', enabled ? 'Turn focus mode off' : 'Turn focus mode on');
-        const icon = button.querySelector('i');
-        if (icon) {
-            icon.className = enabled ? 'fas fa-sun' : 'fas fa-moon';
+        const switchEl = document.getElementById('focusModeSwitch');
+        if (switchEl) {
+            switchEl.setAttribute('aria-checked', String(enabled));
+            switchEl.setAttribute('aria-label',
+                enabled ? 'Turn focus mode off' : 'Turn focus mode on');
         }
     };
 
@@ -663,13 +671,33 @@ function setupFocusModeToggle() {
         }
     };
 
-    button.addEventListener('click', () => {
+    // Timer-chip pattern: the little switch toggles Focus Mode, the
+    // pill (or its gear) opens the Focus settings dropdown.
+    const doToggle = () => {
         const focusMode = getFocusMode();
         if (!focusMode) return;
         if (!focusMode.enabled && window.name !== 'acb-app-window') {
             window.acbFocusPendingWin = openFocusAppWindow();
         }
         focusMode.toggle();
+    };
+    const switchEl = document.getElementById('focusModeSwitch');
+    switchEl?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        doToggle();
+    });
+    switchEl?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            event.stopPropagation();
+            doToggle();
+        }
+    });
+    button.addEventListener('click', () => {
+        const dropdown = document.getElementById('focusSettingsDropdown');
+        if (!dropdown) return;
+        dropdown.hidden = !dropdown.hidden;
+        button.setAttribute('aria-expanded', String(!dropdown.hidden));
     });
 
     document.addEventListener('acb-focus-mode-change', (event) => {
@@ -1533,11 +1561,23 @@ function setupQuests(workspace) {
                 'math_change'],
         };
         const listed = new Set(step.blocks);
+        // Blocks carried over from earlier steps get no chip either:
+        // the card shows what THIS step adds, not the whole history.
+        const fromEarlier = new Set();
+        if (acbTaskEngine && acbTaskEngine.task) {
+            for (let i = 0; i < acbTaskEngine.stepIndex; i++) {
+                for (const t of
+                    (acbTaskEngine.task.steps[i].blocks || [])) {
+                    fromEarlier.add(t);
+                }
+            }
+        }
         const seen = new Set();
         let first = true;
         for (const type of step.blocks) {
             if (seen.has(type)) continue;
             seen.add(type);
+            if (fromEarlier.has(type)) continue;
             const providers = SHADOW_PROVIDERS[type];
             if (providers && providers.some((p) => listed.has(p))) continue;
             // Arrows between chips: they are a sequence, not a pile.
@@ -2491,6 +2531,9 @@ function renderHintView() {
     const current = acbHintHistory[acbHintView];
     if (!current) return;
     text.textContent = current.display;
+    // The learner asked for this one; it shows even with automatic
+    // hints switched off.
+    hints.classList.add('is-explicit');
 
     prev.hidden = acbHintView === 0;
     prev.onclick = () => {

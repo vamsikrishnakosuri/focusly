@@ -543,21 +543,18 @@ function focusGoalRender() {
 /* -------------------------------- setup -------------------------------- */
 
 function setupFocusView() {
-    // The settings live right next to the Focus switch itself, like the
-    // timer's own dropdown - not buried in the general settings menu.
-    const toggle = document.getElementById('focusSettingsButton');
+    // The settings dropdown hangs off the Focus pill itself (main.js
+    // wires the pill click, timer-chip style). Here: close it on any
+    // click that lands outside the pill and the dropdown.
     const dropdown = document.getElementById('focusSettingsDropdown');
     const list = document.getElementById('focusViewList');
-    toggle?.addEventListener('click', (event) => {
-        event.stopPropagation();
-        dropdown.hidden = !dropdown.hidden;
-        toggle.setAttribute('aria-expanded', String(!dropdown.hidden));
-    });
     document.addEventListener('click', (event) => {
         if (dropdown && !dropdown.hidden &&
-            !dropdown.contains(event.target) && event.target !== toggle) {
+            !dropdown.contains(event.target) &&
+            !event.target.closest?.('#focusModeToggle')) {
             dropdown.hidden = true;
-            toggle?.setAttribute('aria-expanded', 'false');
+            document.getElementById('focusModeToggle')
+                ?.setAttribute('aria-expanded', 'false');
         }
     });
     if (list) {
