@@ -1644,6 +1644,90 @@ function setupQuests(workspace) {
         chipTimer = setTimeout(updateChipStates, 250);
     });
 
+    /* ---- Keep the work centered ----------------------------------- */
+
+    // A newly arrived block that landed out of view gets brought to the
+    // middle of the canvas - never during a drag, and never while the
+    // text editor is live-syncing (it reloads blocks constantly).
+    const centerBlockIfOffscreen = (blockId) => {
+        try {
+            const block = workspace.getBlockById(blockId);
+            if (!block) return;
+            const root = block.getRootBlock();
+            const rect = root.getBoundingRectangle();
+            const view = workspace.getMetricsManager().getViewMetrics(true);
+            const out = rect.left > view.left + view.width ||
+                rect.right < view.left ||
+                rect.top > view.top + view.height ||
+                rect.bottom < view.top;
+            if (out) workspace.centerOnBlock(root.id);
+        } catch (e) { /* centering is comfort, never worth an error */ }
+    };
+    let centerTimer = null;
+    workspace.addChangeListener((e) => {
+        if (e.type !== Blockly.Events.BLOCK_CREATE) return;
+        const monacoOpen = document.getElementById('monacoHost') &&
+            !document.getElementById('monacoHost').hidden;
+        if (monacoOpen) return;
+        const id = e.blockId;
+        clearTimeout(centerTimer);
+        const attempt = () => {
+            if (workspace.isDragging && workspace.isDragging()) {
+                centerTimer = setTimeout(attempt, 300);
+                return;
+            }
+            centerBlockIfOffscreen(id);
+        };
+        centerTimer = setTimeout(attempt, 300);
+    });
+    // "Turn into blocks": once applied, bring the result to the middle
+    // instead of leaving it stuck in the top-left corner.
+    document.getElementById('codeApplyButton')?.addEventListener('click',
+        () => {
+            setTimeout(() => {
+                const tops = workspace.getTopBlocks(true);
+                if (tops[0]) {
+                    try { workspace.centerOnBlock(tops[0].id); }
+                    catch (e) { /* fine */ }
+                }
+            }, 250);
+        });
+
+    /* ---- "Snap it here": help for a block left floating ----------- */
+
+    let attachTimer = null;
+    let lastAttachNudge = 0;
+    workspace.addChangeListener((e) => {
+        if (e.type !== Blockly.Events.BLOCK_MOVE &&
+            e.type !== Blockly.Events.BLOCK_CREATE) return;
+        clearTimeout(attachTimer);
+        attachTimer = setTimeout(() => {
+            if (!window.acbAutoHintsOn()) return;
+            if (workspace.isDragging && workspace.isDragging()) return;
+            const task = acbTaskEngine && acbTaskEngine.task;
+            if (!task) return;                       // freeplay: no nagging
+            if (/untangle/.test(task.id)) return;    // stacks ARE the puzzle
+            if (Date.now() - lastAttachNudge < 15000) return;
+            const tops = workspace.getTopBlocks(true);
+            if (tops.length < 2) return;
+            // Point at the tail of the main stack: that is where the
+            // floating block connects.
+            let tail = tops[0];
+            while (tail.getNextBlock && tail.getNextBlock()) {
+                tail = tail.getNextBlock();
+            }
+            const svg = tail.getSvgRoot && tail.getSvgRoot();
+            if (!svg) return;
+            lastAttachNudge = Date.now();
+            svg.classList.add('acb-block-glow');
+            pointGhostCursorAt(svg);
+            coachSay('Your new block is floating on its own. Snap it ' +
+                'onto the glowing block (or inside it) so they run ' +
+                'together.');
+            setTimeout(() => svg.classList.remove('acb-block-glow'), 3200);
+        }, 1500);
+    });
+
     /** Opens the right drawer and glows the block of the given type. */
     const guideToBlock = (type) => {
         nudgeType = type;

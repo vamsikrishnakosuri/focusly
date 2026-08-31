@@ -436,8 +436,13 @@ const ACB_TASK_CHECKS = {
   'times-table': [
     {blocks: [{type: 'variables_set'}, {type: 'controls_repeat_ext'}],
      fields: [{type: 'math_number', name: 'NUM', equals: '10'}]},
+    // The step is "print n x 3": the math block must really multiply,
+    // use the variable, and say 3 - not sit there reading 1 + 1.
     {within: [{child: 'text_print', of: 'controls_repeat_ext'},
-              {child: 'math_arithmetic', of: 'text_print'}]},
+              {child: 'math_arithmetic', of: 'text_print'},
+              {child: 'variables_get', of: 'math_arithmetic'}],
+     fields: [{type: 'math_arithmetic', name: 'OP', equals: 'MULTIPLY'},
+              {type: 'math_number', name: 'NUM', equals: '3'}]},
     {within: [{child: 'math_change', of: 'controls_repeat_ext'}],
      output: {includes: ['3', '30']}},
   ],
