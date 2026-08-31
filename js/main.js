@@ -198,6 +198,28 @@ function initWorkspace() {
     if (typeof setupBests === 'function') setupBests();
     if (typeof setupFocusView === 'function') setupFocusView();
 
+    // Automatic hints: the pointing hand and glowing suggestions that
+    // appear on their own. On by default; one settings row turns them
+    // off for anyone who finds them distracting. Asking for help with
+    // "I'm stuck" always works either way.
+    const hintsToggle = document.getElementById('autoHintsToggle');
+    const paintHints = () => {
+        const on = window.acbAutoHintsOn();
+        hintsToggle?.setAttribute('aria-checked', String(on));
+        const label = document.getElementById('autoHintsLabel');
+        if (label) {
+            label.textContent = 'Automatic hints (' + (on ? 'on' : 'off') + ')';
+        }
+    };
+    hintsToggle?.addEventListener('click', () => {
+        try {
+            localStorage.setItem('acb.autoHints',
+                String(!window.acbAutoHintsOn()));
+        } catch (e) { /* fine */ }
+        paintHints();
+    });
+    paintHints();
+
     // Researcher reset: wipe every acb.* key and reload, so the next
     // participant starts from the true first-visit experience. Two taps,
     // like Finish quest, so a stray click never erases a session.
@@ -1501,11 +1523,23 @@ function setupQuests(workspace) {
         const holder = document.getElementById('nowCardBlocks');
         if (!holder) return;
         holder.innerHTML = '';
+        // Value pieces that arrive already attached to another listed
+        // block get no chip of their own: the print block brings its
+        // text box, set/repeat/change bring their number. A chip for
+        // them reads as "go fetch this too", which it is not.
+        const SHADOW_PROVIDERS = {
+            'text': ['text_print'],
+            'math_number': ['variables_set', 'controls_repeat_ext',
+                'math_change'],
+        };
+        const listed = new Set(step.blocks);
         const seen = new Set();
         let first = true;
         for (const type of step.blocks) {
             if (seen.has(type)) continue;
             seen.add(type);
+            const providers = SHADOW_PROVIDERS[type];
+            if (providers && providers.some((p) => listed.has(p))) continue;
             // Arrows between chips: they are a sequence, not a pile.
             if (!first) {
                 const arrow = document.createElement('span');
@@ -2070,6 +2104,11 @@ function setupQuests(workspace) {
             armNudge();
             return;
         }
+        // The learner switched automatic hints off: respect it fully.
+        if (!window.acbAutoHintsOn()) {
+            armNudge();
+            return;
+        }
         clearNudge();
         const target = nudgeTarget();
         if (!target) return;
@@ -2263,6 +2302,12 @@ let ACB_COACH_SERVER = (() => {
         return window.FOCUSLY_COACH_URL || 'http://localhost:8124';
     }
 })();
+
+/** Whether automatic hints (nudges, pointing hand) are enabled. */
+window.acbAutoHintsOn = function() {
+    try { return localStorage.getItem('acb.autoHints') !== 'false'; }
+    catch (e) { return true; }
+};
 
 let acbAiCoachAvailable = false;
 
@@ -2554,10 +2599,16 @@ function acbStuckDiagnosis() {
         const need = want.count || 1;
         if (count < need) {
             const drawer = acbDrawerFor(want.type);
+            // Say WHERE it goes, not just what to fetch: new blocks
+            // join the existing stack unless the canvas is empty.
+            const where = facts.blocks.length ?
+                ', then snap it under your other blocks' :
+                ' and drop it on the dots';
             lines.push('Add ' + (need - count > 1 ?
                 (need - count) + ' more' : 'a') + ' "' +
                 acbBlockName(want.type) + '" block' +
-                (drawer ? ' from the ' + drawer + ' drawer' : '') + '.');
+                (drawer ? ' from the ' + drawer + ' drawer' : '') +
+                where + '.');
         }
     }
     for (const want of check.within || []) {

@@ -543,12 +543,22 @@ function focusGoalRender() {
 /* -------------------------------- setup -------------------------------- */
 
 function setupFocusView() {
-    // Collapsed by default: one row in settings opens the checklist.
-    const toggle = document.getElementById('focusViewToggle');
+    // The settings live right next to the Focus switch itself, like the
+    // timer's own dropdown - not buried in the general settings menu.
+    const toggle = document.getElementById('focusSettingsButton');
+    const dropdown = document.getElementById('focusSettingsDropdown');
     const list = document.getElementById('focusViewList');
-    toggle?.addEventListener('click', () => {
-        list.hidden = !list.hidden;
-        toggle.setAttribute('aria-expanded', String(!list.hidden));
+    toggle?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        dropdown.hidden = !dropdown.hidden;
+        toggle.setAttribute('aria-expanded', String(!dropdown.hidden));
+    });
+    document.addEventListener('click', (event) => {
+        if (dropdown && !dropdown.hidden &&
+            !dropdown.contains(event.target) && event.target !== toggle) {
+            dropdown.hidden = true;
+            toggle?.setAttribute('aria-expanded', 'false');
+        }
     });
     if (list) {
         const prefs = focusShowPrefs();

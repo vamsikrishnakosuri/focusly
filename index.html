@@ -88,13 +88,25 @@
                 <i class="fas fa-fire" aria-hidden="true"></i>
                 <span id="streakChipLabel">1 day</span>
             </span>
-            <button id="focusModeToggle" class="chip chip--switch" type="button"
-                    aria-pressed="false"
-                    title="Focus mode (Ctrl+Shift+F)"
-                    aria-label="Turn focus mode on">
-                <span class="mini-switch" aria-hidden="true"></span>
-                <span class="chip__label">Focus</span>
-            </button>
+            <div class="timer-menu">
+                <button id="focusModeToggle" class="chip chip--switch" type="button"
+                        aria-pressed="false"
+                        title="Focus mode (Ctrl+Shift+F)"
+                        aria-label="Turn focus mode on">
+                    <span class="mini-switch" aria-hidden="true"></span>
+                    <span class="chip__label">Focus</span>
+                </button>
+                <button id="focusSettingsButton" class="chip chip--icon" type="button"
+                        aria-haspopup="true" aria-expanded="false"
+                        aria-controls="focusSettingsDropdown"
+                        title="Focus Mode settings"
+                        aria-label="Focus Mode settings">◎</button>
+                <div id="focusSettingsDropdown" class="settings-dropdown timer-dropdown"
+                     role="group" aria-label="Focus Mode settings" hidden>
+                    <p class="timer-dropdown__title">In Focus Mode, keep showing:</p>
+                    <div id="focusViewList"></div>
+                </div>
+            </div>
             <button id="breakNowButton" class="chip chip--icon" type="button"
                     title="Take a break now"
                     aria-label="Take a break now">🌿</button>
@@ -226,12 +238,11 @@
                         <span>Coach chat</span>
                     </button>
                     <div class="settings-divider" role="separator"></div>
-                    <button id="focusViewToggle" class="settings-item" type="button"
-                            aria-expanded="false">
-                        ◎ Focus Mode settings
+                    <button id="autoHintsToggle" class="settings-item" type="button"
+                            role="menuitemcheckbox" aria-checked="true">
+                        <i class="fas fa-lightbulb" aria-hidden="true"></i>
+                        <span id="autoHintsLabel">Automatic hints (on)</span>
                     </button>
-                    <div id="focusViewList" hidden>
-                    </div>
                     <button id="otherSettingsToggle" class="settings-item" type="button"
                             aria-expanded="false">
                         ⋯ Other settings
@@ -457,7 +468,7 @@
                 </div>
                 <div id="coachHints" class="coach-card__hints" hidden>
                     <p class="coach-card__hints-title">
-                        Hints: one at a time, never the answer
+                        Hints
                     </p>
                     <p id="coachHintText" class="coach-card__hint-line"></p>
                     <div class="hint-nav">
