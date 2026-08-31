@@ -1502,19 +1502,73 @@ function setupQuests(workspace) {
         if (!holder) return;
         holder.innerHTML = '';
         const seen = new Set();
+        let first = true;
         for (const type of step.blocks) {
             if (seen.has(type)) continue;
             seen.add(type);
+            // Arrows between chips: they are a sequence, not a pile.
+            if (!first) {
+                const arrow = document.createElement('span');
+                arrow.className = 'now-card__chip-arrow';
+                arrow.setAttribute('aria-hidden', 'true');
+                arrow.textContent = '→';
+                holder.appendChild(arrow);
+            }
+            first = false;
             const chip = document.createElement('button');
             chip.type = 'button';
             chip.className = 'now-card__block-chip';
+            chip.dataset.type = type;
             chip.textContent = (typeof labelForBlockType === 'function') ?
                 labelForBlockType(type) : type;
             chip.title = 'Show me this block';
-            chip.addEventListener('click', () => guideToBlock(type));
+            chip.addEventListener('click', () => {
+                // Already placed? Point at THEIR block on the canvas
+                // instead of sending them back to the drawer - that
+                // re-drag loop is exactly what we saw in sessions.
+                if (chip.classList.contains('is-placed')) {
+                    const block = workspace.getAllBlocks(false)
+                        .find((b) => b.type === type);
+                    if (block && block.getSvgRoot) {
+                        const svg = block.getSvgRoot();
+                        svg.classList.add('acb-block-glow');
+                        pointGhostCursorAt(svg);
+                        setTimeout(() =>
+                            svg.classList.remove('acb-block-glow'), 2600);
+                    }
+                    return;
+                }
+                guideToBlock(type);
+            });
             holder.appendChild(chip);
         }
+        updateChipStates();
     };
+
+    /**
+     * Live check-off: a chip whose block already sits on the canvas is
+     * struck through, so nobody drags the same block twice.
+     */
+    const updateChipStates = () => {
+        const holder = document.getElementById('nowCardBlocks');
+        if (!holder) return;
+        const placed = new Set(
+            workspace.getAllBlocks(false).map((b) => b.type));
+        holder.querySelectorAll('.now-card__block-chip').forEach((chip) => {
+            const done = placed.has(chip.dataset.type);
+            chip.classList.toggle('is-placed', done);
+            chip.title = done ?
+                'Placed! Click to see it on your canvas' :
+                'Show me this block';
+        });
+    };
+
+    // Chips react as the learner works, lightly debounced.
+    let chipTimer = null;
+    workspace.addChangeListener(() => {
+        clearTimeout(chipTimer);
+        chipTimer = setTimeout(updateChipStates, 250);
+    });
 
     /** Opens the right drawer and glows the block of the given type. */
     const guideToBlock = (type) => {

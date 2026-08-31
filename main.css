@@ -2315,6 +2315,30 @@ body.acb-now-dock #blocklyDiv {
     cursor: pointer;
 }
 
+/* A chip whose block is already on the canvas: checked off, faded,
+   struck through - "you have this one already". */
+.now-card__block-chip.is-placed {
+    opacity: 0.55;
+    text-decoration: line-through;
+    background: #f2f0ea;
+    border-color: #ddd8cc;
+    color: #6f6a5e;
+}
+.now-card__block-chip.is-placed::before {
+    content: "\2713 ";
+    text-decoration: none;
+    color: var(--acb-green);
+    font-weight: 900;
+}
+
+/* Order arrows between chips: this is a sequence, not a pile. */
+.now-card__chip-arrow {
+    color: var(--acb-ink-soft);
+    font-weight: 800;
+    align-self: center;
+    user-select: none;
+}
+
 .now-card__block-chip:hover,
 .now-card__block-chip:focus-visible {
     background: #ddefe5;
