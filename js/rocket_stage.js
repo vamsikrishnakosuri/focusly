@@ -199,13 +199,22 @@ function rocketQuestActive() {
 
 /** Whether this run's output deserves the launch stage at all. */
 function rocketShouldAnimate(parsed) {
+    // Inside any OTHER quest, the rocket stays out of it entirely: a
+    // half-built times table printing 3,3,3 must not read as a stuck
+    // countdown and crash a rocket over it.
+    const task = (typeof acbTaskEngine !== 'undefined') && acbTaskEngine &&
+        acbTaskEngine.task;
+    if (task && task.id !== 'countdown') return false;
+    // On the Rocket quest, every attempt plays out - including the
+    // wrong ones, which get their crash and their caption.
     if (rocketQuestActive() && parsed.numbers.length >= 2) return true;
     if (parsed.numbers.length < 3) return false;
-    // Non-climbing counts look like countdowns; so does anything that
-    // starts from 5 or higher (a countdown attempt going the wrong
-    // way), which keeps the times table and Fibonacci out of here.
-    return parsed.numbers[1] <= parsed.numbers[0] ||
-        parsed.numbers[0] >= 5;
+    // Freeplay: only a genuine countdown, every number lower than the
+    // one before it.
+    for (let i = 1; i < parsed.numbers.length; i++) {
+        if (parsed.numbers[i] >= parsed.numbers[i - 1]) return false;
+    }
+    return true;
 }
 
 function rocketMinimalMotion() {
